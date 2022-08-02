@@ -75,25 +75,23 @@ class HttpUpstreamProxy(tunnel.TunnelLayer):
         if not self.send_connect:
             return (yield from super().receive_handshake_data(data))
         self.buf += data
-        response_head = self.buf.maybe_extract_lines()
-        if response_head:
-            response_head = [bytes(x) for x in response_head]  # TODO: Make url.parse compatible with bytearrays
-            try:
-                response = http1.read_response_head(response_head)
-            except ValueError as e:
-                proxyaddr = human.format_address(self.tunnel_connection.address)
-                yield commands.Log(f"{proxyaddr}: {e}")
-                return False, f"Error connecting to {proxyaddr}: {e}"
-            if 200 <= response.status_code < 300:
-                if self.buf:
-                    yield from self.receive_data(bytes(self.buf))
-                    del self.buf
-                return True, None
-            else:
-                proxyaddr = human.format_address(self.tunnel_connection.address)
-                raw_resp = b"\n".join(response_head)
-                yield commands.Log(f"{proxyaddr}: {raw_resp!r}",
-                                   level="debug")
-                return False, f"Upstream proxy {proxyaddr} refused HTTP CONNECT request: {response.status_code} {response.reason}"
-        else:
+        if not (response_head := self.buf.maybe_extract_lines()):
             return False, None
+        response_head = [bytes(x) for x in response_head]  # TODO: Make url.parse compatible with bytearrays
+        try:
+            response = http1.read_response_head(response_head)
+        except ValueError as e:
+            proxyaddr = human.format_address(self.tunnel_connection.address)
+            yield commands.Log(f"{proxyaddr}: {e}")
+            return False, f"Error connecting to {proxyaddr}: {e}"
+        if 200 <= response.status_code < 300:
+            if self.buf:
+                yield from self.receive_data(bytes(self.buf))
+                del self.buf
+            return True, None
+        else:
+            proxyaddr = human.format_address(self.tunnel_connection.address)
+            raw_resp = b"\n".join(response_head)
+            yield commands.Log(f"{proxyaddr}: {raw_resp!r}",
+                               level="debug")
+            return False, f"Upstream proxy {proxyaddr} refused HTTP CONNECT request: {response.status_code} {response.reason}"

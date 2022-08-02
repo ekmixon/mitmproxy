@@ -14,8 +14,7 @@ class ViewWBXML(base.View):
     def __call__(self, data, **metadata):
         try:
             parser = ASCommandResponse.ASCommandResponse(data)
-            parsedContent = parser.xmlString
-            if parsedContent:
+            if parsedContent := parser.xmlString:
                 return "WBXML", base.format_text(parsedContent)
         except:
             return None

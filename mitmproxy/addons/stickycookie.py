@@ -13,11 +13,9 @@ def ckey(attrs: Dict[str, str], f: http.HTTPFlow) -> TOrigin:
         Returns a (domain, port, path) tuple.
     """
     domain = f.request.host
-    path = "/"
     if "domain" in attrs:
         domain = attrs["domain"]
-    if "path" in attrs:
-        path = attrs["path"]
+    path = attrs.get("path", "/")
     return (domain, f.request.port, path)
 
 
@@ -71,18 +69,19 @@ class StickyCookie:
                         self.jar[dom_port_path][name] = value
 
     def request(self, flow: http.HTTPFlow):
-        if self.flt:
-            cookie_list: List[Tuple[str, str]] = []
-            if flowfilter.match(self.flt, flow):
-                for (domain, port, path), c in self.jar.items():
-                    match = [
-                        domain_match(flow.request.host, domain),
-                        flow.request.port == port,
-                        flow.request.path.startswith(path)
-                    ]
-                    if all(match):
-                        cookie_list.extend(c.items())
-            if cookie_list:
-                # FIXME: we need to formalise this...
-                flow.metadata["stickycookie"] = True
-                flow.request.headers["cookie"] = cookies.format_cookie_header(cookie_list)
+        if not self.flt:
+            return
+        cookie_list: List[Tuple[str, str]] = []
+        if flowfilter.match(self.flt, flow):
+            for (domain, port, path), c in self.jar.items():
+                match = [
+                    domain_match(flow.request.host, domain),
+                    flow.request.port == port,
+                    flow.request.path.startswith(path)
+                ]
+                if all(match):
+                    cookie_list.extend(c.items())
+        if cookie_list:
+            # FIXME: we need to formalise this...
+            flow.metadata["stickycookie"] = True
+            flow.request.headers["cookie"] = cookies.format_cookie_header(cookie_list)

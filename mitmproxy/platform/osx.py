@@ -25,7 +25,7 @@ def original_addr(csock):
         if "sudo: a password is required" in e.output.decode(errors="replace"):
             insufficient_priv = True
         else:
-            raise RuntimeError("Error getting pfctl state: " + repr(e))
+            raise RuntimeError(f"Error getting pfctl state: {repr(e)}")
     else:
         insufficient_priv = "sudo: a password is required" in stxt.decode(errors="replace")
 

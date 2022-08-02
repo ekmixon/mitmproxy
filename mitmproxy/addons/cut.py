@@ -16,7 +16,7 @@ import pyperclip
 
 def headername(spec: str):
     if not (spec.startswith("header[") and spec.endswith("]")):
-        raise exceptions.CommandError("Invalid header spec: %s" % spec)
+        raise exceptions.CommandError(f"Invalid header spec: {spec}")
     return spec[len("header["):-1].strip()
 
 
@@ -38,9 +38,7 @@ def extract(cut: str, f: flow.Flow) -> typing.Union[str, bytes]:
             if spec == "host" and is_addr(current):
                 return str(current[0])
             elif spec.startswith("header["):
-                if not current:
-                    return ""
-                return current.headers.get(headername(spec), "")
+                return current.headers.get(headername(spec), "") if current else ""
             elif isinstance(part, bytes):
                 return part
             elif isinstance(part, bool):
@@ -70,10 +68,7 @@ class Cut:
             or "false", "bytes" are preserved, and all other values are
             converted to strings.
         """
-        ret: typing.List[typing.List[typing.Union[str, bytes]]] = []
-        for f in flows:
-            ret.append([extract(c, f) for c in cuts])
-        return ret  # type: ignore
+        return [[extract(c, f) for c in cuts] for f in flows]
 
     @command.command("cut.save")
     def save(
@@ -142,7 +137,7 @@ class Cut:
                 writer.writerow(
                     [strutils.always_str(v) for v in vals]
                 )
-            ctx.log.alert("Clipped %s cuts as CSV." % len(cuts))
+            ctx.log.alert(f"Clipped {len(cuts)} cuts as CSV.")
         try:
             pyperclip.copy(fp.getvalue())
         except pyperclip.PyperclipException as e:

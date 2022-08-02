@@ -108,9 +108,10 @@ class ConnectionHandler(metaclass=abc.ABCMeta):
         else:
             handler = asyncio_utils.create_task(
                 self.handle_connection(self.client),
-                name=f"client connection handler",
+                name="client connection handler",
                 client=self.client.peername,
             )
+
             if not handler:
                 return   # this should not be needed, see asyncio_utils.create_task
             self.transports[self.client].handler = handler
@@ -133,8 +134,13 @@ class ConnectionHandler(metaclass=abc.ABCMeta):
 
     async def open_connection(self, command: commands.OpenConnection) -> None:
         if not command.connection.address:
-            self.log(f"Cannot open connection, no hostname given.")
-            self.server_event(events.OpenConnectionCompleted(command, f"Cannot open connection, no hostname given."))
+            self.log("Cannot open connection, no hostname given.")
+            self.server_event(
+                events.OpenConnectionCompleted(
+                    command, "Cannot open connection, no hostname given."
+                )
+            )
+
             return
 
         hook_data = server_hooks.ServerConnectionHookData(
@@ -364,8 +370,7 @@ class SimpleConnectionHandler(StreamConnectionHandler):  # pragma: no cover
             self.hook_handlers[hook.name](*hook.args())
 
     def log(self, message: str, level: str = "info"):
-        if "Hook" not in message:
-            pass  # print(message, file=sys.stderr if level in ("error", "warn") else sys.stdout)
+        pass
 
 
 if __name__ == "__main__":  # pragma: no cover

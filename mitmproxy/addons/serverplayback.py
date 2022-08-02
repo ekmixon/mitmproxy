@@ -112,7 +112,7 @@ class ServerPlayback:
 
     @command.command("replay.server.count")
     def count(self) -> int:
-        return sum([len(i) for i in self.flowmap.values()])
+        return sum(len(i) for i in self.flowmap.values())
 
     def _hash(self, flow: http.HTTPFlow) -> typing.Hashable:
         """
@@ -123,32 +123,30 @@ class ServerPlayback:
         queriesArray = urllib.parse.parse_qsl(query, keep_blank_values=True)
 
         key: typing.List[typing.Any] = [str(r.scheme), str(r.method), str(path)]
-        if not ctx.options.server_replay_ignore_content:
-            if ctx.options.server_replay_ignore_payload_params and r.multipart_form:
+        if ctx.options.server_replay_ignore_payload_params and r.multipart_form:
+            if not ctx.options.server_replay_ignore_content:
                 key.extend(
                     (k, v)
                     for k, v in r.multipart_form.items(multi=True)
                     if k.decode(errors="replace") not in ctx.options.server_replay_ignore_payload_params
                 )
-            elif ctx.options.server_replay_ignore_payload_params and r.urlencoded_form:
+        elif ctx.options.server_replay_ignore_payload_params and r.urlencoded_form:
+            if not ctx.options.server_replay_ignore_content:
                 key.extend(
                     (k, v)
                     for k, v in r.urlencoded_form.items(multi=True)
                     if k not in ctx.options.server_replay_ignore_payload_params
                 )
-            else:
-                key.append(str(r.raw_content))
+        elif not ctx.options.server_replay_ignore_content:
+            key.append(str(r.raw_content))
 
         if not ctx.options.server_replay_ignore_host:
             key.append(r.pretty_host)
         if not ctx.options.server_replay_ignore_port:
             key.append(r.port)
 
-        filtered = []
         ignore_params = ctx.options.server_replay_ignore_params or []
-        for p in queriesArray:
-            if p[0] not in ignore_params:
-                filtered.append(p)
+        filtered = [p for p in queriesArray if p[0] not in ignore_params]
         for p in filtered:
             key.append(p[0])
             key.append(p[1])
@@ -169,26 +167,24 @@ class ServerPlayback:
             found.
         """
         hash = self._hash(flow)
-        if hash in self.flowmap:
-            if ctx.options.server_replay_nopop:
-                return next((
-                    flow
-                    for flow in self.flowmap[hash]
-                    if flow.response
-                ), None)
-            else:
-                ret = self.flowmap[hash].pop(0)
-                while not ret.response:
-                    if self.flowmap[hash]:
-                        ret = self.flowmap[hash].pop(0)
-                    else:
-                        del self.flowmap[hash]
-                        return None
-                if not self.flowmap[hash]:
-                    del self.flowmap[hash]
-                return ret
-        else:
+        if hash not in self.flowmap:
             return None
+        if ctx.options.server_replay_nopop:
+            return next((
+                flow
+                for flow in self.flowmap[hash]
+                if flow.response
+            ), None)
+        ret = self.flowmap[hash].pop(0)
+        while not ret.response:
+            if self.flowmap[hash]:
+                ret = self.flowmap[hash].pop(0)
+            else:
+                del self.flowmap[hash]
+                return None
+        if not self.flowmap[hash]:
+            del self.flowmap[hash]
+        return ret
 
     def configure(self, updated):
         if not self.configured and ctx.options.server_replay:
@@ -200,19 +196,15 @@ class ServerPlayback:
             self.load_flows(flows)
 
     def request(self, f: http.HTTPFlow) -> None:
-        if self.flowmap:
-            rflow = self.next_flow(f)
-            if rflow:
-                assert rflow.response
-                response = rflow.response.copy()
-                if ctx.options.server_replay_refresh:
-                    response.refresh()
-                f.response = response
-                f.is_replay = "response"
-            elif ctx.options.server_replay_kill_extra:
-                ctx.log.warn(
-                    "server_playback: killed non-replay request {}".format(
-                        f.request.url
-                    )
-                )
-                f.kill()
+        if not self.flowmap:
+            return
+        if rflow := self.next_flow(f):
+            assert rflow.response
+            response = rflow.response.copy()
+            if ctx.options.server_replay_refresh:
+                response.refresh()
+            f.response = response
+            f.is_replay = "response"
+        elif ctx.options.server_replay_kill_extra:
+            ctx.log.warn(f"server_playback: killed non-replay request {f.request.url}")
+            f.kill()

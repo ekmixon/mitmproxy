@@ -48,9 +48,7 @@ class FlowListWalker(urwid.ListWalker):
         # The stub implementation of positions can go once this issue is resolved:
         # https://github.com/urwid/urwid/issues/294
         ret = range(self.master.commands.execute("view.properties.length"))
-        if reverse:
-            return reversed(ret)
-        return ret
+        return reversed(ret) if reverse else ret
 
     def view_changed(self):
         self._modified()

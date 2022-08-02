@@ -10,7 +10,9 @@ from kaitaistruct import __version__ as ks_version, KaitaiStruct, KaitaiStream, 
 
 
 if parse_version(ks_version) < parse_version('0.7'):
-    raise Exception("Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have %s" % (ks_version))
+    raise Exception(
+        f"Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have {ks_version}"
+    )
 
 class Gif(KaitaiStruct):
 
@@ -26,7 +28,7 @@ class Gif(KaitaiStruct):
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
-        self._root = _root if _root else self
+        self._root = _root or self
         self.hdr = self._root.Header(self._io, self, self._root)
         self.logical_screen_descriptor = self._root.LogicalScreenDescriptorStruct(self._io, self, self._root)
         if self.logical_screen_descriptor.has_color_table:
@@ -45,7 +47,7 @@ class Gif(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.lzw_min_code_size = self._io.read_u1()
             self.subblocks = self._root.Subblocks(self._io, self, self._root)
 
@@ -54,7 +56,7 @@ class Gif(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.red = self._io.read_u1()
             self.green = self._io.read_u1()
             self.blue = self._io.read_u1()
@@ -64,7 +66,7 @@ class Gif(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.screen_width = self._io.read_u2le()
             self.screen_height = self._io.read_u2le()
             self.flags = self._io.read_u1()
@@ -92,7 +94,7 @@ class Gif(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.left = self._io.read_u2le()
             self.top = self._io.read_u2le()
             self.width = self._io.read_u2le()
@@ -142,7 +144,7 @@ class Gif(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.block_type = self._root.BlockType(self._io.read_u1())
             _on = self.block_type
             if _on == self._root.BlockType.extension:
@@ -155,7 +157,7 @@ class Gif(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.entries = []
             while not self._io.is_eof():
                 self.entries.append(self._root.ColorTableEntry(self._io, self, self._root))
@@ -166,7 +168,7 @@ class Gif(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.magic = self._io.ensure_fixed_contents(struct.pack('3b', 71, 73, 70))
             self.version = (self._io.read_bytes(3)).decode(u"ASCII")
 
@@ -175,7 +177,7 @@ class Gif(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.block_size = self._io.ensure_fixed_contents(struct.pack('1b', 4))
             self.flags = self._io.read_u1()
             self.delay_time = self._io.read_u2le()
@@ -203,7 +205,7 @@ class Gif(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.num_bytes = self._io.read_u1()
             self.bytes = self._io.read_bytes(self.num_bytes)
 
@@ -212,7 +214,7 @@ class Gif(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.application_id = self._root.Subblock(self._io, self, self._root)
             self.subblocks = []
             while True:
@@ -226,7 +228,7 @@ class Gif(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.entries = []
             while True:
                 _ = self._root.Subblock(self._io, self, self._root)
@@ -239,7 +241,7 @@ class Gif(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.label = self._root.ExtensionLabel(self._io.read_u1())
             _on = self.label
             if _on == self._root.ExtensionLabel.application:

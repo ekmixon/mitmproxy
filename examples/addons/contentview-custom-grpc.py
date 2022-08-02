@@ -64,7 +64,7 @@ class ViewGrpcWithRules(ViewGrpcProtobuf):
 
     def __call__(self, *args, **kwargs) -> contentviews.TViewResult:
         heading, lines = super().__call__(*args, **kwargs)
-        return heading + " (addon with custom rules)", lines
+        return f"{heading} (addon with custom rules)", lines
 
     def render_priority(self, *args, **kwargs) -> float:
         # increase priority above default gRPC view

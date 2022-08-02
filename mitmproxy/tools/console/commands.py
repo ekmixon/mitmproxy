@@ -83,9 +83,7 @@ class CommandListWalker(urwid.ListWalker):
 
     def get_prev(self, pos):
         pos = pos - 1
-        if pos < 0:
-            return None, None
-        return self._get(pos), pos
+        return (None, None) if pos < 0 else (self._get(pos), pos)
 
 
 class CommandsList(urwid.ListBox):
@@ -97,7 +95,7 @@ class CommandsList(urwid.ListBox):
     def keypress(self, size, key):
         if key == "m_select":
             foc, idx = self.get_focus()
-            signals.status_prompt_command.send(partial=foc.cmd.name + " ")
+            signals.status_prompt_command.send(partial=f"{foc.cmd.name} ")
         elif key == "m_start":
             self.set_focus(0)
             self.walker._modified()
@@ -154,11 +152,7 @@ class Commands(urwid.Pile, layoutwidget.LayoutWidget):
             self.widget_list[1].set_active(self.focus_position == 1)
             key = None
 
-        # This is essentially a copypasta from urwid.Pile's keypress handler.
-        # So much for "closed for modification, but open for extension".
-        item_rows = None
-        if len(size) == 2:
-            item_rows = self.get_item_rows(size, focus = True)
+        item_rows = self.get_item_rows(size, focus = True) if len(size) == 2 else None
         i = self.widget_list.index(self.focus_item)
         tsize = self.get_item_size(size, i, True, item_rows)
         return self.focus_item.keypress(tsize, key)

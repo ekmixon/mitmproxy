@@ -14,7 +14,8 @@ for example in examples:
     code = example.read_text()
     slug = str(example.with_suffix("").relative_to(example_dir))
     slug = re.sub(r"[^a-zA-Z]", "-", slug)
-    match = re.search(r'''
+    if match := re.search(
+        r'''
         ^
         (?:[#][^\n]*\n)?  # there might be a shebang
         """
@@ -22,9 +23,11 @@ for example in examples:
         (.+?)
         \s*
         (?:\n\n|""")     # stop on empty line or end of comment
-    ''', code, re.VERBOSE)
-    if match:
-        comment = " — " + match.group(1)
+    ''',
+        code,
+        re.VERBOSE,
+    ):
+        comment = " — " + match[1]
     else:
         comment = ""
     overview.append(

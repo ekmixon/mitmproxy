@@ -33,7 +33,8 @@ print("""
         <tbody>
       """.strip())
 for key, option in sorted(unified_options.items(), key=lambda t: t[0]):
-    print("""
+    print(
+        """
           <tr>
           <th>{}<br/>{}</th>
           <td>{}</td>
@@ -43,11 +44,17 @@ for key, option in sorted(unified_options.items(), key=lambda t: t[0]):
           </td>
           </tr>
           """.strip().format(
-              key,
-              ' '.join(["<span class='badge'>{}</span>".format(t) for t in option['tools']]),
-              option['type'],
-              option['help'],
-              option['default'],
-              "<br/>Choices: {}".format(', '.join(option['choices'])) if option['choices'] else "",
-    ))
+            key,
+            ' '.join(
+                [f"<span class='badge'>{t}</span>" for t in option['tools']]
+            ),
+            option['type'],
+            option['help'],
+            option['default'],
+            f"<br/>Choices: {', '.join(option['choices'])}"
+            if option['choices']
+            else "",
+        )
+    )
+
 print("</tbody></table>")

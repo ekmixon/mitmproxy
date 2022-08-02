@@ -6,7 +6,10 @@ from enum import Enum
 
 
 if parse_version(ks_version) < parse_version('0.7'):
-    raise Exception("Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have %s" % (ks_version))
+    raise Exception(
+        f"Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have {ks_version}"
+    )
+
 
 from .vlq_base128_le import VlqBase128Le
 class GoogleProtobuf(KaitaiStruct):
@@ -44,7 +47,7 @@ class GoogleProtobuf(KaitaiStruct):
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
-        self._root = _root if _root else self
+        self._root = _root or self
         self._read()
 
     def _read(self):
@@ -66,7 +69,7 @@ class GoogleProtobuf(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self._read()
 
         def _read(self):
@@ -113,7 +116,7 @@ class GoogleProtobuf(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self._read()
 
         def _read(self):

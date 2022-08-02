@@ -21,9 +21,7 @@ class CommandExecutor:
             else:
                 if ret:
                     if type(ret) == typing.Sequence[flow.Flow]:
-                        signals.status_message.send(
-                            message="Command returned %s flows" % len(ret)
-                        )
+                        signals.status_message.send(message=f"Command returned {len(ret)} flows")
                     elif type(ret) == flow.Flow:
                         signals.status_message.send(
                             message="Command returned 1 flow"

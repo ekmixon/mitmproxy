@@ -240,13 +240,14 @@ class TestXSSScanner():
         assert text == expected_text
         assert xss.paths_to_text("""<html></html>""", "STRING") == []
 
-    def mocked_requests_vuln(*args, headers=None, cookies=None):
+    def mocked_requests_vuln(self, headers=None, cookies=None):
+
         class MockResponse:
             def __init__(self, html, headers=None, cookies=None):
                 self.text = html
-        return MockResponse("<html>%s</html>" % xss.FULL_PAYLOAD)
+        return MockResponse(f"<html>{xss.FULL_PAYLOAD}</html>")
 
-    def mocked_requests_invuln(*args, headers=None, cookies=None):
+    def mocked_requests_invuln(self, headers=None, cookies=None):
         class MockResponse:
             def __init__(self, html, headers=None, cookies=None):
                 self.text = html

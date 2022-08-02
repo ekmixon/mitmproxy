@@ -8,22 +8,24 @@ from mitmproxy import ctx
 
 
 def get_chrome_executable() -> typing.Optional[str]:
-    for browser in (
-            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-            # https://stackoverflow.com/questions/40674914/google-chrome-path-in-windows-10
-            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
-            r"C:\Program Files (x86)\Google\Application\chrome.exe",
-            # Linux binary names from Python's webbrowser module.
-            "google-chrome",
-            "google-chrome-stable",
-            "chrome",
-            "chromium",
-            "chromium-browser",
-            "google-chrome-unstable",
-    ):
-        if shutil.which(browser):
-            return browser
-    return None
+    return next(
+        (
+            browser
+            for browser in (
+                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+                r"C:\Program Files (x86)\Google\Application\chrome.exe",
+                "google-chrome",
+                "google-chrome-stable",
+                "chrome",
+                "chromium",
+                "chromium-browser",
+                "google-chrome-unstable",
+            )
+            if shutil.which(browser)
+        ),
+        None,
+    )
 
 
 class Browser:
@@ -46,24 +48,22 @@ class Browser:
 
         tdir = tempfile.TemporaryDirectory()
         self.tdir.append(tdir)
-        self.browser.append(subprocess.Popen(
-            [
-                cmd,
-                "--user-data-dir=%s" % str(tdir.name),
-                "--proxy-server={}:{}".format(
-                    ctx.options.listen_host or "127.0.0.1",
-                    ctx.options.listen_port
-                ),
-                "--disable-fre",
-                "--no-default-browser-check",
-                "--no-first-run",
-                "--disable-extensions",
-
-                "about:blank",
-            ],
-            stdout = subprocess.DEVNULL,
-            stderr = subprocess.DEVNULL,
-        ))
+        self.browser.append(
+            subprocess.Popen(
+                [
+                    cmd,
+                    f"--user-data-dir={str(tdir.name)}",
+                    f'--proxy-server={ctx.options.listen_host or "127.0.0.1"}:{ctx.options.listen_port}',
+                    "--disable-fre",
+                    "--no-default-browser-check",
+                    "--no-first-run",
+                    "--disable-extensions",
+                    "about:blank",
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        )
 
     def done(self):
         for browser in self.browser:

@@ -122,7 +122,7 @@ class Flow(stateobject.StateObject):
         self.reply: typing.Optional[controller.Reply] = None
         self.marked: str = ""
         self.is_replay: typing.Optional[str] = None
-        self.metadata: typing.Dict[str, typing.Any] = dict()
+        self.metadata: typing.Dict[str, typing.Any] = {}
         self.comment: str = ""
 
     _stateobject_attributes = dict(
@@ -170,10 +170,7 @@ class Flow(stateobject.StateObject):
         """
         `True` if this file has been modified by a user, `False` otherwise.
         """
-        if self._backup:
-            return self._backup != self.get_state()
-        else:
-            return False
+        return self._backup != self.get_state() if self._backup else False
 
     def backup(self, force=False):
         """

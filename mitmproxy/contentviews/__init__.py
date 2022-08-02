@@ -36,17 +36,14 @@ on_add = blinker.Signal()
 
 
 def get(name: str) -> Optional[View]:
-    for i in views:
-        if i.name.lower() == name.lower():
-            return i
-    return None
+    return next((i for i in views if i.name.lower() == name.lower()), None)
 
 
 def add(view: View) -> None:
     # TODO: auto-select a different name (append an integer?)
     for i in views:
         if i.name == view.name:
-            raise ValueError("Duplicate view: " + view.name)
+            raise ValueError(f"Duplicate view: {view.name}")
 
     views.append(view)
     on_add.send(view)
@@ -92,9 +89,7 @@ def get_message_content_view(
         enc = "[cannot decode]"
     else:
         if isinstance(message, http.Message) and content != message.raw_content:
-            enc = "[decoded {}]".format(
-                message.headers.get("content-encoding")
-            )
+            enc = f'[decoded {message.headers.get("content-encoding")}]'
         else:
             enc = ""
 
@@ -105,7 +100,7 @@ def get_message_content_view(
     http_message = None
     if isinstance(message, http.Message):
         http_message = message
-        if ctype := message.headers.get("content-type"):
+        if ctype := http_message.headers.get("content-type"):
             if ct := http.parse_content_type(ctype):
                 content_type = f"{ct[0]}/{ct[1]}"
 

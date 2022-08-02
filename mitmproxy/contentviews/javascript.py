@@ -8,11 +8,17 @@ from mitmproxy.contentviews import base
 DELIMITERS = '{};\n'
 SPECIAL_AREAS = (
     r"(?<=[^\w\s)])\s*/(?:[^\n/]|(?<!\\)(?:\\\\)*\\/)+?/(?=[gimsuy]{0,6}\s*(?:[;,).\n]|$))",
-    r"'" + strutils.MULTILINE_CONTENT_LINE_CONTINUATION + strutils.NO_ESCAPE + "'",
-    r'"' + strutils.MULTILINE_CONTENT_LINE_CONTINUATION + strutils.NO_ESCAPE + '"',
-    r'`' + strutils.MULTILINE_CONTENT + strutils.NO_ESCAPE + '`',
+    r"'"
+    + strutils.MULTILINE_CONTENT_LINE_CONTINUATION
+    + strutils.NO_ESCAPE
+    + "'",
+    r'"'
+    + strutils.MULTILINE_CONTENT_LINE_CONTINUATION
+    + strutils.NO_ESCAPE
+    + '"',
+    f'`{strutils.MULTILINE_CONTENT}{strutils.NO_ESCAPE}`',
     r"/\*" + strutils.MULTILINE_CONTENT + r"\*/",
-    r"//" + strutils.SINGLELINE_CONTENT + "$",
+    f"//{strutils.SINGLELINE_CONTENT}$",
     r"for\(" + strutils.SINGLELINE_CONTENT + r"\)",
 )
 

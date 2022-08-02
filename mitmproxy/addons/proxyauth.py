@@ -41,8 +41,7 @@ class ProxyAuth:
     def configure(self, updated):
         if "proxyauth" not in updated:
             return
-        auth = ctx.options.proxyauth
-        if auth:
+        if auth := ctx.options.proxyauth:
             if ctx.options.mode == "transparent":
                 raise exceptions.OptionsError("Proxy Authentication not supported in transparent mode.")
 
@@ -125,10 +124,7 @@ class ProxyAuth:
 
     @property
     def http_auth_header(self) -> str:
-        if self.is_http_proxy:
-            return "Proxy-Authorization"
-        else:
-            return "Authorization"
+        return "Proxy-Authorization" if self.is_http_proxy else "Authorization"
 
     @property
     def is_http_proxy(self) -> bool:
@@ -144,10 +140,11 @@ def mkauth(username: str, password: str, scheme: str = "basic") -> str:
     """
     Craft a basic auth string
     """
-    v = binascii.b2a_base64(
-        (username + ":" + password).encode("utf8")
-    ).decode("ascii")
-    return scheme + " " + v
+    v = binascii.b2a_base64(f"{username}:{password}".encode("utf8")).decode(
+        "ascii"
+    )
+
+    return f"{scheme} {v}"
 
 
 def parse_http_basic_auth(s: str) -> Tuple[str, str, str]:
@@ -231,12 +228,8 @@ class Ldap(Validator):
             return False
         self.conn.search(self.dn_subtree, f"(cn={username})")
         if self.conn.response:
-            c = ldap3.Connection(
-                self.server,
-                self.conn.response[0]["dn"],
-                password,
-                auto_bind=True
-            )
-            if c:
+            if c := ldap3.Connection(
+                self.server, self.conn.response[0]["dn"], password, auto_bind=True
+            ):
                 return True
         return False

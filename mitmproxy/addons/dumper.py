@@ -18,7 +18,7 @@ from wsproto.frame_protocol import CloseReason
 
 
 def indent(n: int, text: str) -> str:
-    l = str(text).strip().splitlines()
+    l = text.strip().splitlines()
     pad = " " * n
     return "\n".join(pad + i for i in l)
 
@@ -114,10 +114,9 @@ class Dumper:
             text=dict(fg="green")
         )
 
-        content = "\r\n".join(
+        if content := "\r\n".join(
             "".join(colorful(line, styles)) for line in lines_to_echo
-        )
-        if content:
+        ):
             self.echo("")
             self.echo(content)
 
@@ -151,16 +150,12 @@ class Dumper:
             fg=method_color,
             bold=True
         )
-        if ctx.options.showhost:
-            url = flow.request.pretty_url
-        else:
-            url = flow.request.url
-
+        url = flow.request.pretty_url if ctx.options.showhost else flow.request.url
         if ctx.options.flow_detail <= 1:
             # We need to truncate before applying styles, so we just focus on the URL.
             terminal_width_limit = max(shutil.get_terminal_size()[0] - 25, 50)
             if len(url) > terminal_width_limit:
-                url = url[:terminal_width_limit] + "…"
+                url = f"{url[:terminal_width_limit]}…"
         url = click.style(strutils.escape_control_characters(url), bold=True)
 
         http_version = ""
@@ -169,7 +164,7 @@ class Dumper:
             or flow.request.http_version != getattr(flow.response, "http_version", "HTTP/1.1")
         ):
             # Hide version for h1 <-> h1 connections.
-            http_version = " " + flow.request.http_version
+            http_version = f" {flow.request.http_version}"
 
         self.echo(f"{client}: {method} {url}{http_version}")
 
@@ -197,10 +192,12 @@ class Dumper:
             blink=(code_int == 418),
         )
 
-        if not flow.response.is_http2:
-            reason = flow.response.reason
-        else:
-            reason = http.status_codes.RESPONSES.get(flow.response.status_code, "")
+        reason = (
+            http.status_codes.RESPONSES.get(flow.response.status_code, "")
+            if flow.response.is_http2
+            else flow.response.reason
+        )
+
         reason = click.style(
             strutils.escape_control_characters(reason),
             fg=code_color,

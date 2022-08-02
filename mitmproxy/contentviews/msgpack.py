@@ -28,7 +28,7 @@ def pretty(value, htchar="    ", lfchar="\n", indent=0):
             nlch + pretty(item, htchar, lfchar, indent + 1)
             for item in value
         ]
-        return "[%s]" % (",".join(items) + lfchar + htchar * indent)
+        return f'[{",".join(items) + lfchar + htchar * indent}]'
     else:
         return repr(value)
 

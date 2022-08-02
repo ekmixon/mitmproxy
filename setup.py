@@ -16,7 +16,7 @@ long_description_content_type = "text/markdown"
 with open(os.path.join(here, "mitmproxy", "version.py")) as f:
     match = re.search(r'VERSION = "(.+?)"', f.read())
     assert match
-    VERSION = match.group(1)
+    VERSION = match[1]
 
 setup(
     name="mitmproxy",

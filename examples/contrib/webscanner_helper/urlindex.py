@@ -69,7 +69,7 @@ class JSONUrlIndexWriter(UrlIndexWriter):
         res = flow.response
 
         if req is not None and res is not None:
-            urls = self.host_urls.setdefault(f"{req.scheme}://{req.host}:{req.port}", dict())
+            urls = self.host_urls.setdefault(f"{req.scheme}://{req.host}:{req.port}", {})
             methods = urls.setdefault(req.path, {})
             codes = methods.setdefault(req.method, set())
             codes.add(res.status_code)
@@ -159,9 +159,8 @@ class UrlIndexAddon:
         """
         if isinstance(self.index_filter, str) or self.index_filter is None:
             raise ValueError("Invalid filter expression.")
-        else:
-            if self.index_filter(flow):
-                self.writer.add_url(flow)
+        if self.index_filter(flow):
+            self.writer.add_url(flow)
 
     def done(self):
         """Writes the URL index."""

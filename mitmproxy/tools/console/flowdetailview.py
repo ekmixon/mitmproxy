@@ -33,9 +33,7 @@ def flowdetails(state, flow: mitmproxy.flow.Flow):
         req = None
         resp = None
     metadata = flow.metadata
-    comment = flow.comment
-
-    if comment:
+    if comment := flow.comment:
         text.append(urwid.Text([("head", "Comment: "), ("text", comment)]))
 
     if metadata is not None and len(metadata) > 0:
@@ -123,18 +121,19 @@ def flowdetails(state, flow: mitmproxy.flow.Flow):
         )
 
     if sc is not None and sc.timestamp_start:
-        parts.append(
+        parts.extend(
             (
-                "Server conn. initiated",
-                maybe_timestamp(sc, "timestamp_start")
+                (
+                    "Server conn. initiated",
+                    maybe_timestamp(sc, "timestamp_start"),
+                ),
+                (
+                    "Server conn. TCP handshake",
+                    maybe_timestamp(sc, "timestamp_tcp_setup"),
+                ),
             )
         )
-        parts.append(
-            (
-                "Server conn. TCP handshake",
-                maybe_timestamp(sc, "timestamp_tcp_setup")
-            )
-        )
+
         if sc.tls_established:
             parts.append(
                 (
@@ -150,30 +149,24 @@ def flowdetails(state, flow: mitmproxy.flow.Flow):
         )
 
     if req is not None and req.timestamp_start:
-        parts.append(
+        parts.extend(
             (
-                "First request byte",
-                maybe_timestamp(req, "timestamp_start")
-            )
-        )
-        parts.append(
-            (
-                "Request complete",
-                maybe_timestamp(req, "timestamp_end")
+                (
+                    "First request byte",
+                    maybe_timestamp(req, "timestamp_start"),
+                ),
+                ("Request complete", maybe_timestamp(req, "timestamp_end")),
             )
         )
 
     if resp is not None and resp.timestamp_start:
-        parts.append(
+        parts.extend(
             (
-                "First response byte",
-                maybe_timestamp(resp, "timestamp_start")
-            )
-        )
-        parts.append(
-            (
-                "Response complete",
-                maybe_timestamp(resp, "timestamp_end")
+                (
+                    "First response byte",
+                    maybe_timestamp(resp, "timestamp_start"),
+                ),
+                ("Response complete", maybe_timestamp(resp, "timestamp_end")),
             )
         )
 

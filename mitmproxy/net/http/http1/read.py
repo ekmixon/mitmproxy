@@ -128,7 +128,10 @@ def expected_http_body_size(
             if response:
                 return -1
             else:
-                raise ValueError(f"Invalid request transfer encoding, message body cannot be determined reliably.")
+                raise ValueError(
+                    "Invalid request transfer encoding, message body cannot be determined reliably."
+                )
+
         else:
             raise ValueError(f"Unknown transfer encoding: {headers['transfer-encoding']!r}")
 
@@ -166,14 +169,7 @@ def expected_http_body_size(
 
     #    6.  If this is a request message and none of the above are true, then
     #        the message body length is zero (no message body is present).
-    if not response:
-        return 0
-
-    #    7.  Otherwise, this is a response message without a declared message
-    #        body length, so the message body length is determined by the
-    #        number of octets received prior to the server closing the
-    #        connection.
-    return -1
+    return -1 if response else 0
 
 
 def raise_if_http_version_unknown(http_version: bytes) -> None:

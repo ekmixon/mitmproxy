@@ -106,7 +106,6 @@ class TestTestUrlIndexWriter:
                 "2020-04-22T05:41:08.679231 STATUS: 200 METHOD: GET URL:http://example.com")
         writer = TextUrlIndexWriter(filename=tmpfile)
         writer.load()
-        assert True
 
     def test_load_empty(self, tmpdir):
         tmpfile = tmpdir.join("tmpfile")
@@ -114,13 +113,11 @@ class TestTestUrlIndexWriter:
             tfile.write("{}")
         writer = TextUrlIndexWriter(filename=tmpfile)
         writer.load()
-        assert True
 
     def test_load_nonexisting(self, tmpdir):
         tmpfile = tmpdir.join("tmpfile")
         writer = TextUrlIndexWriter(filename=tmpfile)
         writer.load()
-        assert True
 
     def test_add(self, tmpdir):
         tmpfile = tmpdir.join("tmpfile")
@@ -131,8 +128,7 @@ class TestTestUrlIndexWriter:
         code = f.response.status_code
         writer.add_url(f)
 
-        with open(tmpfile) as results:
-            content = results.read()
+        content = Path(tmpfile).read_text()
         assert url in content
         assert method in content
         assert str(code) in content
@@ -147,8 +143,7 @@ class TestTestUrlIndexWriter:
         writer.add_url(f)
         writer.save()
 
-        with open(tmpfile) as results:
-            content = results.read()
+        content = Path(tmpfile).read_text()
         assert url in content
         assert method in content
         assert str(code) in content

@@ -10,7 +10,9 @@ from kaitaistruct import __version__ as ks_version, KaitaiStruct, KaitaiStream, 
 
 
 if parse_version(ks_version) < parse_version('0.7'):
-    raise Exception("Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have %s" % (ks_version))
+    raise Exception(
+        f"Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have {ks_version}"
+    )
 
 class Png(KaitaiStruct):
 
@@ -27,7 +29,7 @@ class Png(KaitaiStruct):
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
-        self._root = _root if _root else self
+        self._root = _root or self
         self.magic = self._io.ensure_fixed_contents(struct.pack('8b', -119, 80, 78, 71, 13, 10, 26, 10))
         self.ihdr_len = self._io.ensure_fixed_contents(struct.pack('4b', 0, 0, 0, 13))
         self.ihdr_type = self._io.ensure_fixed_contents(struct.pack('4b', 73, 72, 68, 82))
@@ -44,7 +46,7 @@ class Png(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.r = self._io.read_u1()
             self.g = self._io.read_u1()
             self.b = self._io.read_u1()
@@ -54,7 +56,7 @@ class Png(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.len = self._io.read_u4be()
             self.type = (self._io.read_bytes(4)).decode(u"UTF-8")
             _on = self.type
@@ -107,7 +109,7 @@ class Png(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.palette_index = self._io.read_u1()
 
 
@@ -115,7 +117,7 @@ class Png(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.x_int = self._io.read_u4be()
             self.y_int = self._io.read_u4be()
 
@@ -140,7 +142,7 @@ class Png(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.value = self._io.read_u2be()
 
 
@@ -148,7 +150,7 @@ class Png(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.white_point = self._root.Point(self._io, self, self._root)
             self.red = self._root.Point(self._io, self, self._root)
             self.green = self._root.Point(self._io, self, self._root)
@@ -159,7 +161,7 @@ class Png(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.width = self._io.read_u4be()
             self.height = self._io.read_u4be()
             self.bit_depth = self._io.read_u1()
@@ -173,7 +175,7 @@ class Png(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.entries = []
             while not self._io.is_eof():
                 self.entries.append(self._root.Rgb(self._io, self, self._root))
@@ -190,7 +192,7 @@ class Png(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.render_intent = self._root.SrgbChunk.Intent(self._io.read_u1())
 
 
@@ -198,7 +200,7 @@ class Png(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.keyword = (self._io.read_bytes_term(0, False, True, True)).decode(u"UTF-8")
             self.compression_method = self._io.read_u1()
             self._raw_text_datastream = self._io.read_bytes_full()
@@ -209,7 +211,7 @@ class Png(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.red = self._io.read_u2be()
             self.green = self._io.read_u2be()
             self.blue = self._io.read_u2be()
@@ -219,7 +221,7 @@ class Png(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.gamma_int = self._io.read_u4be()
 
         @property
@@ -235,7 +237,7 @@ class Png(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             _on = self._root.ihdr.color_type
             if _on == self._root.ColorType.greyscale_alpha:
                 self.bkgd = self._root.BkgdGreyscale(self._io, self, self._root)
@@ -253,7 +255,7 @@ class Png(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.pixels_per_unit_x = self._io.read_u4be()
             self.pixels_per_unit_y = self._io.read_u4be()
             self.unit = self._root.PhysUnit(self._io.read_u1())
@@ -263,7 +265,7 @@ class Png(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.keyword = (self._io.read_bytes_term(0, False, True, True)).decode(u"UTF-8")
             self.compression_flag = self._io.read_u1()
             self.compression_method = self._io.read_u1()
@@ -276,7 +278,7 @@ class Png(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.keyword = (self._io.read_bytes_term(0, False, True, True)).decode(u"iso8859-1")
             self.text = (self._io.read_bytes_full()).decode(u"iso8859-1")
 
@@ -285,7 +287,7 @@ class Png(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.year = self._io.read_u2be()
             self.month = self._io.read_u1()
             self.day = self._io.read_u1()

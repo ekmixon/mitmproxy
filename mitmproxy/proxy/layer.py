@@ -79,20 +79,17 @@ class Layer:
         statefun = getattr(self, "state", self._handle_event)
         state = getattr(statefun, "__name__", "")
         state = state.replace("state_", "")
-        if state == "_handle_event":
-            state = ""
-        else:
-            state = f"state: {state}"
+        state = "" if state == "_handle_event" else f"state: {state}"
         return f"{type(self).__name__}({state})"
 
     def __debug(self, message):
         """yield a Log command indicating what message is passing through this layer."""
         if len(message) > 512:
-            message = message[:512] + "…"
+            message = f"{message[:512]}…"
         if Layer.__last_debug_message == message:
             message = message.split("\n", 1)[0].strip()
             if len(message) > 256:
-                message = message[:256] + "…"
+                message = f"{message[:256]}…"
         else:
             Layer.__last_debug_message = message
         return commands.Log(
@@ -146,9 +143,10 @@ class Layer:
                 return
 
             while True:
-                if self.debug is not None:
-                    if not isinstance(command, commands.Log):
-                        yield self.__debug(f"<< {command}")
+                if self.debug is not None and not isinstance(
+                    command, commands.Log
+                ):
+                    yield self.__debug(f"<< {command}")
                 if command.blocking is True:
                     # We only want this layer to block, the outer layers should not block.
                     # For example, take an HTTP/2 connection: If we intercept one particular request,
@@ -185,9 +183,8 @@ class Layer:
             return
 
         while True:
-            if self.debug is not None:
-                if not isinstance(command, commands.Log):
-                    yield self.__debug(f"<< {command}")
+            if self.debug is not None and not isinstance(command, commands.Log):
+                yield self.__debug(f"<< {command}")
             if command.blocking is True:
                 # We only want this layer to block, the outer layers should not block.
                 # For example, take an HTTP/2 connection: If we intercept one particular request,

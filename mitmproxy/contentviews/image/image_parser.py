@@ -24,9 +24,7 @@ def parse_png(data: bytes) -> Metadata:
             aspectx = chunk.body.pixels_per_unit_x
             aspecty = chunk.body.pixels_per_unit_y
             parts.append(('aspect', f"{aspectx} x {aspecty}"))
-        elif chunk.type == 'tEXt':
-            parts.append((chunk.body.keyword, chunk.body.text))
-        elif chunk.type == 'iTXt':
+        elif chunk.type in ['tEXt', 'iTXt']:
             parts.append((chunk.body.keyword, chunk.body.text))
         elif chunk.type == 'zTXt':
             parts.append((chunk.body.keyword, chunk.body.text_datastream.decode('iso8859-1')))
@@ -42,14 +40,14 @@ def parse_gif(data: bytes) -> Metadata:
         ('Size', f"{descriptor.screen_width} x {descriptor.screen_height} px"),
         ('background', str(descriptor.bg_color_index))
     ]
-    ext_blocks = []
-    for block in img.blocks:
-        if block.block_type.name == 'extension':
-            ext_blocks.append(block)
-    comment_blocks = []
-    for block in ext_blocks:
-        if block.body.label._name_ == 'comment':
-            comment_blocks.append(block)
+    ext_blocks = [
+        block for block in img.blocks if block.block_type.name == 'extension'
+    ]
+
+    comment_blocks = [
+        block for block in ext_blocks if block.body.label._name_ == 'comment'
+    ]
+
     for block in comment_blocks:
         entries = block.body.body.entries
         for entry in entries:
@@ -65,19 +63,32 @@ def parse_jpeg(data: bytes) -> Metadata:
         ('Format', 'JPEG (ISO 10918)')
     ]
     for segment in img.segments:
-        if segment.marker._name_ == 'sof0':
-            parts.append(('Size', f"{segment.data.image_width} x {segment.data.image_height} px"))
         if segment.marker._name_ == 'app0':
-            parts.append(('jfif_version', f"({segment.data.version_major}, {segment.data.version_minor})"))
-            parts.append(('jfif_density', f"({segment.data.density_x}, {segment.data.density_y})"))
-            parts.append(('jfif_unit', str(segment.data.density_units._value_)))
-        if segment.marker._name_ == 'com':
+            parts.extend(
+                (
+                    (
+                        'jfif_version',
+                        f"({segment.data.version_major}, {segment.data.version_minor})",
+                    ),
+                    (
+                        'jfif_density',
+                        f"({segment.data.density_x}, {segment.data.density_y})",
+                    ),
+                    ('jfif_unit', str(segment.data.density_units._value_)),
+                )
+            )
+
+        elif segment.marker._name_ == 'com':
             parts.append(('comment', str(segment.data)))
-        if segment.marker._name_ == 'app1':
-            if hasattr(segment.data, 'body'):
-                for field in segment.data.body.data.body.ifd0.fields:
-                    if field.data is not None:
-                        parts.append((field.tag._name_, field.data.decode('UTF-8').strip('\x00')))
+        elif segment.marker._name_ == 'sof0':
+            parts.append(('Size', f"{segment.data.image_width} x {segment.data.image_height} px"))
+        if segment.marker._name_ == 'app1' and hasattr(segment.data, 'body'):
+            parts.extend(
+                (field.tag._name_, field.data.decode('UTF-8').strip('\x00'))
+                for field in segment.data.body.data.body.ifd0.fields
+                if field.data is not None
+            )
+
     return parts
 
 
@@ -88,16 +99,23 @@ def parse_ico(data: bytes) -> Metadata:
         ('Number of images', str(img.num_images)),
     ]
 
-    for i, image in enumerate(img.images):
-        parts.append(
+    parts.extend(
+        (
+            f'Image {i + 1}',
             (
-                'Image {}'.format(i + 1), "Size: {} x {}\n"
-                                          "{: >18}Bits per pixel: {}\n"
-                                          "{: >18}PNG: {}".format(256 if not image.width else image.width,
-                                                                  256 if not image.height else image.height,
-                                                                  '', image.bpp,
-                                                                  '', image.is_png)
-            )
+                "Size: {} x {}\n"
+                "{: >18}Bits per pixel: {}\n"
+                "{: >18}PNG: {}".format(
+                    image.width or 256,
+                    image.height or 256,
+                    '',
+                    image.bpp,
+                    '',
+                    image.is_png,
+                )
+            ),
         )
+        for i, image in enumerate(img.images)
+    )
 
     return parts

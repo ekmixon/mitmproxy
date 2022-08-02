@@ -14,10 +14,7 @@ class Hook:
     name: ClassVar[str]
 
     def args(self) -> List[Any]:
-        args = []
-        for field in fields(self):
-            args.append(getattr(self, field.name))
-        return args
+        return [getattr(self, field.name) for field in fields(self)]
 
     def __new__(cls, *args, **kwargs):
         if cls is Hook:

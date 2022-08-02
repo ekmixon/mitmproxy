@@ -77,10 +77,10 @@ class ASWBXMLByteQueue(Queue):
                 return iReturn
 
     def dequeueString(self, length=None):
+        currentByte = 0x00
+        strReturn = ""
         if ( length != None):
-            currentByte = 0x00
-            strReturn = ""
-            for i in range(0, length):
+            for _ in range(length):
                 # TODO: Improve this handling. We are technically UTF-8, meaning
                 # that characters could be more than one byte long. This will fail if we have
                 # characters outside of the US-ASCII range
@@ -90,8 +90,6 @@ class ASWBXMLByteQueue(Queue):
                 strReturn += chr(currentByte)
 
         else:
-            currentByte = 0x00
-            strReturn = ""
             while True:
                 currentByte = self.dequeueAndLog()
                 if (currentByte != 0x00):

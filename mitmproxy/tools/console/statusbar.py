@@ -61,7 +61,7 @@ class ActionBar(urwid.WidgetWrap):
             signals.call_in.send(seconds=expire, callback=cb)
 
     def prep_prompt(self, p):
-        return p.strip() + ": "
+        return f"{p.strip()}: "
 
     def shorten_message(self, msg, max_width):
         """
@@ -73,7 +73,6 @@ class ActionBar(urwid.WidgetWrap):
             disp_attr, msg_text = None, msg
         else:
             return msg
-        msg_end = "\u2026"  # unicode ellipsis for the end of shortened message
         prompt = "(more in eventlog)"
 
         msg_lines = msg_text.split("\n")
@@ -85,11 +84,11 @@ class ActionBar(urwid.WidgetWrap):
             line_length = len(first_line)
 
         if line_length > max_width:
+            msg_end = "\u2026"  # unicode ellipsis for the end of shortened message
             shortening_index = max(0, max_width - len(prompt) - len(msg_end))
             first_line = first_line[:shortening_index] + msg_end
-        else:
-            if len(msg_lines) == 1:
-                prompt = ""
+        elif len(msg_lines) == 1:
+            prompt = ""
 
         return [(disp_attr, first_line), ("warn", prompt)]
 
@@ -120,14 +119,12 @@ class ActionBar(urwid.WidgetWrap):
             word is highlighted.
         """
         signals.focus.send(self, section="footer")
-        prompt = [prompt, " ("]
         mkup = []
         for i, e in enumerate(keys):
             mkup.extend(common.highlight_key(e[0], e[1]))
             if i < len(keys) - 1:
                 mkup.append(",")
-        prompt.extend(mkup)
-        prompt.append(")? ")
+        prompt = [prompt, " (", *mkup, ")? "]
         self.onekey = {i[1] for i in keys}
         self._w = urwid.Edit(prompt, "")
         self.prompting = PromptStub(callback, args)
@@ -136,22 +133,22 @@ class ActionBar(urwid.WidgetWrap):
         return True
 
     def keypress(self, size, k):
-        if self.prompting:
-            if k == "esc":
+        if not self.prompting:
+            return
+        if k == "esc":
+            self.prompt_done()
+        elif self.onekey:
+            if k == "enter":
                 self.prompt_done()
-            elif self.onekey:
-                if k == "enter":
-                    self.prompt_done()
-                elif k in self.onekey:
-                    self.prompt_execute(k)
-            elif k == "enter":
-                text = self._w.get_edit_text()
-                self.prompt_execute(text)
-            else:
-                if common.is_keypress(k):
-                    self._w.keypress(size, k)
-                else:
-                    return k
+            elif k in self.onekey:
+                self.prompt_execute(k)
+        elif k == "enter":
+            text = self._w.get_edit_text()
+            self.prompt_execute(text)
+        elif common.is_keypress(k):
+            self._w.keypress(size, k)
+        else:
+            return k
 
     def clear(self):
         self._w = urwid.Text("")
@@ -166,8 +163,7 @@ class ActionBar(urwid.WidgetWrap):
     def prompt_execute(self, txt):
         p = self.prompting
         self.prompt_done()
-        msg = p(txt)
-        if msg:
+        if msg := p(txt):
             signals.status_message.send(message=msg, expire=1)
 
 
@@ -207,56 +203,55 @@ class StatusBar(urwid.WidgetWrap):
         creplay = self.master.commands.call("replay.client.count")
 
         if len(self.master.options.modify_headers):
-            r.append("[")
-            r.append(("heading_key", "H"))
-            r.append("eaders]")
+            r.extend(("[", ("heading_key", "H"), "eaders]"))
         if len(self.master.options.modify_body):
             r.append("[%d body modifications]" % len(self.master.options.modify_body))
         if creplay:
-            r.append("[")
-            r.append(("heading_key", "cplayback"))
-            r.append(":%s]" % creplay)
+            r.extend(("[", ("heading_key", "cplayback"), f":{creplay}]"))
         if sreplay:
-            r.append("[")
-            r.append(("heading_key", "splayback"))
-            r.append(":%s]" % sreplay)
+            r.extend(("[", ("heading_key", "splayback"), f":{sreplay}]"))
         if self.master.options.ignore_hosts:
-            r.append("[")
-            r.append(("heading_key", "I"))
-            r.append("gnore:%d]" % len(self.master.options.ignore_hosts))
+            r.extend(
+                (
+                    "[",
+                    ("heading_key", "I"),
+                    "gnore:%d]" % len(self.master.options.ignore_hosts),
+                )
+            )
+
         elif self.master.options.allow_hosts:
-            r.append("[")
-            r.append(("heading_key", "A"))
-            r.append("llow:%d]" % len(self.master.options.allow_hosts))
+            r.extend(
+                (
+                    "[",
+                    ("heading_key", "A"),
+                    "llow:%d]" % len(self.master.options.allow_hosts),
+                )
+            )
+
         if self.master.options.tcp_hosts:
-            r.append("[")
-            r.append(("heading_key", "T"))
-            r.append("CP:%d]" % len(self.master.options.tcp_hosts))
+            r.extend(
+                (
+                    "[",
+                    ("heading_key", "T"),
+                    "CP:%d]" % len(self.master.options.tcp_hosts),
+                )
+            )
+
         if self.master.options.intercept:
             r.append("[")
             if not self.master.options.intercept_active:
                 r.append("X")
-            r.append(("heading_key", "i"))
-            r.append(":%s]" % self.master.options.intercept)
+            r.extend((("heading_key", "i"), f":{self.master.options.intercept}]"))
         if self.master.options.view_filter:
-            r.append("[")
-            r.append(("heading_key", "f"))
-            r.append(":%s]" % self.master.options.view_filter)
+            r.extend(("[", ("heading_key", "f"), f":{self.master.options.view_filter}]"))
         if self.master.options.stickycookie:
-            r.append("[")
-            r.append(("heading_key", "t"))
-            r.append(":%s]" % self.master.options.stickycookie)
+            r.extend(("[", ("heading_key", "t"), f":{self.master.options.stickycookie}]"))
         if self.master.options.stickyauth:
-            r.append("[")
-            r.append(("heading_key", "u"))
-            r.append(":%s]" % self.master.options.stickyauth)
+            r.extend(("[", ("heading_key", "u"), f":{self.master.options.stickyauth}]"))
         if self.master.options.console_default_contentview != 'auto':
-            r.append("[contentview:%s]" % (self.master.options.console_default_contentview))
+            r.append(f"[contentview:{self.master.options.console_default_contentview}]")
         if self.master.options.has_changed("view_order"):
-            r.append("[")
-            r.append(("heading_key", "o"))
-            r.append(":%s]" % self.master.options.view_order)
-
+            r.extend(("[", ("heading_key", "o"), f":{self.master.options.view_order}]"))
         opts = []
         if self.master.options.anticache:
             opts.append("anticache")
@@ -276,41 +271,39 @@ class StatusBar(urwid.WidgetWrap):
             opts.append(self.master.options.stream_large_bodies)
 
         if opts:
-            r.append("[%s]" % (":".join(opts)))
+            r.append(f'[{":".join(opts)}]')
 
         if self.master.options.mode != "regular":
-            r.append("[%s]" % self.master.options.mode)
+            r.append(f"[{self.master.options.mode}]")
         if self.master.options.scripts:
-            r.append("[scripts:%s]" % len(self.master.options.scripts))
+            r.append(f"[scripts:{len(self.master.options.scripts)}]")
 
         if self.master.options.save_stream_file:
-            r.append("[W:%s]" % self.master.options.save_stream_file)
+            r.append(f"[W:{self.master.options.save_stream_file}]")
 
         return r
 
     def redraw(self):
         fc = self.master.commands.execute("view.properties.length")
-        if self.master.view.focus.flow is None:
-            offset = 0
-        else:
-            offset = self.master.view.focus.index + 1
-
         if self.master.options.view_order_reversed:
             arrow = common.SYMBOL_UP
         else:
             arrow = common.SYMBOL_DOWN
 
-        marked = ""
-        if self.master.commands.execute("view.properties.marked"):
-            marked = "M"
+        offset = (
+            0
+            if self.master.view.focus.flow is None
+            else self.master.view.focus.index + 1
+        )
 
+        marked = "M" if self.master.commands.execute("view.properties.marked") else ""
         t = [
             ('heading', (f"{arrow} {marked} [{offset}/{fc}]").ljust(11)),
         ]
 
         if self.master.options.server:
             host = self.master.options.listen_host
-            if host == "0.0.0.0" or host == "":
+            if host in ["0.0.0.0", ""]:
                 host = "*"
             boundaddr = f"[{host}:{self.master.options.listen_port}]"
         else:

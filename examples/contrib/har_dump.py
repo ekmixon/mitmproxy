@@ -40,17 +40,19 @@ def load(l):
 
 
 def configure(updated):
-    HAR.update({
-        "log": {
-            "version": "1.2",
-            "creator": {
-                "name": "mitmproxy har_dump",
-                "version": "0.1",
-                "comment": "mitmproxy version %s" % version.MITMPROXY
-            },
-            "entries": []
+    HAR.update(
+        {
+            "log": {
+                "version": "1.2",
+                "creator": {
+                    "name": "mitmproxy har_dump",
+                    "version": "0.1",
+                    "comment": f"mitmproxy version {version.MITMPROXY}",
+                },
+                "entries": [],
+            }
         }
-    })
+    )
 
 
 def response(flow: mitmproxy.http.HTTPFlow):
@@ -163,20 +165,21 @@ def done():
     """
         Called once on script shutdown, after any other events.
     """
-    if ctx.options.hardump:
-        json_dump: str = json.dumps(HAR, indent=2)
+    if not ctx.options.hardump:
+        return
+    json_dump: str = json.dumps(HAR, indent=2)
 
-        if ctx.options.hardump == '-':
-            mitmproxy.ctx.log(json_dump)
-        else:
-            raw: bytes = json_dump.encode()
-            if ctx.options.hardump.endswith('.zhar'):
-                raw = zlib.compress(raw, 9)
+    if ctx.options.hardump == '-':
+        mitmproxy.ctx.log(json_dump)
+    else:
+        raw: bytes = json_dump.encode()
+        if ctx.options.hardump.endswith('.zhar'):
+            raw = zlib.compress(raw, 9)
 
-            with open(os.path.expanduser(ctx.options.hardump), "wb") as f:
-                f.write(raw)
+        with open(os.path.expanduser(ctx.options.hardump), "wb") as f:
+            f.write(raw)
 
-            mitmproxy.ctx.log("HAR dump finished (wrote %s bytes to file)" % len(json_dump))
+        mitmproxy.ctx.log(f"HAR dump finished (wrote {len(json_dump)} bytes to file)")
 
 
 def format_cookies(cookie_list):
@@ -195,7 +198,7 @@ def format_cookies(cookie_list):
 
         # These keys need to be boolean!
         for key in ["httpOnly", "secure"]:
-            cookie_har[key] = bool(key in attrs)
+            cookie_har[key] = key in attrs
 
         # Expiration time needs to be formatted
         expire_ts = cookies.get_expiration_ts(attrs)

@@ -10,7 +10,10 @@ from kaitaistruct import __version__ as ks_version, KaitaiStruct, KaitaiStream, 
 
 
 if parse_version(ks_version) < parse_version('0.7'):
-    raise Exception("Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have %s" % (ks_version))
+    raise Exception(
+        f"Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have {ks_version}"
+    )
+
 
 from .exif import Exif
 
@@ -25,7 +28,7 @@ class Jpeg(KaitaiStruct):
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
-        self._root = _root if _root else self
+        self._root = _root or self
         self.segments = []
         while not self._io.is_eof():
             self.segments.append(self._root.Segment(self._io, self, self._root))
@@ -70,13 +73,19 @@ class Jpeg(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.magic = self._io.ensure_fixed_contents(struct.pack('1b', -1))
             self.marker = self._root.Segment.MarkerEnum(self._io.read_u1())
-            if  ((self.marker != self._root.Segment.MarkerEnum.soi) and (self.marker != self._root.Segment.MarkerEnum.eoi)) :
+            if self.marker not in [
+                self._root.Segment.MarkerEnum.soi,
+                self._root.Segment.MarkerEnum.eoi,
+            ]:
                 self.length = self._io.read_u2be()
 
-            if  ((self.marker != self._root.Segment.MarkerEnum.soi) and (self.marker != self._root.Segment.MarkerEnum.eoi)) :
+            if self.marker not in [
+                self._root.Segment.MarkerEnum.soi,
+                self._root.Segment.MarkerEnum.eoi,
+            ]:
                 _on = self.marker
                 if _on == self._root.Segment.MarkerEnum.sos:
                     self._raw_data = self._io.read_bytes((self.length - 2))
@@ -106,7 +115,7 @@ class Jpeg(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.num_components = self._io.read_u1()
             self.components = [None] * (self.num_components)
             for i in range(self.num_components):
@@ -120,7 +129,7 @@ class Jpeg(KaitaiStruct):
             def __init__(self, _io, _parent=None, _root=None):
                 self._io = _io
                 self._parent = _parent
-                self._root = _root if _root else self
+                self._root = _root or self
                 self.id = self._root.ComponentId(self._io.read_u1())
                 self.huffman_table = self._io.read_u1()
 
@@ -130,7 +139,7 @@ class Jpeg(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.magic = (self._io.read_bytes_term(0, False, True, True)).decode(u"ASCII")
             _on = self.magic
             if _on == u"Exif":
@@ -141,7 +150,7 @@ class Jpeg(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.bits_per_sample = self._io.read_u1()
             self.image_height = self._io.read_u2be()
             self.image_width = self._io.read_u2be()
@@ -155,7 +164,7 @@ class Jpeg(KaitaiStruct):
             def __init__(self, _io, _parent=None, _root=None):
                 self._io = _io
                 self._parent = _parent
-                self._root = _root if _root else self
+                self._root = _root or self
                 self.id = self._root.ComponentId(self._io.read_u1())
                 self.sampling_factors = self._io.read_u1()
                 self.quantization_table_id = self._io.read_u1()
@@ -182,7 +191,7 @@ class Jpeg(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.extra_zero = self._io.ensure_fixed_contents(struct.pack('1b', 0))
             self._raw_data = self._io.read_bytes_full()
             io = KaitaiStream(BytesIO(self._raw_data))
@@ -198,7 +207,7 @@ class Jpeg(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
-            self._root = _root if _root else self
+            self._root = _root or self
             self.magic = (self._io.read_bytes(5)).decode(u"ASCII")
             self.version_major = self._io.read_u1()
             self.version_minor = self._io.read_u1()

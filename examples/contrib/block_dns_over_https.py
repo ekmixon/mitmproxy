@@ -98,10 +98,10 @@ def _has_dns_message_content_type(flow):
     :return: True if 'Content-Type' header is DNS-looking, False otherwise
     """
     doh_content_types = ['application/dns-message']
-    if 'Content-Type' in flow.request.headers:
-        if flow.request.headers['Content-Type'] in doh_content_types:
-            return True
-    return False
+    return (
+        'Content-Type' in flow.request.headers
+        and flow.request.headers['Content-Type'] in doh_content_types
+    )
 
 
 def _request_has_dns_query_string(flow):
@@ -129,14 +129,14 @@ def _request_is_dns_json(flow):
     """
     # Header 'Accept: application/dns-json' is required in Cloudflare's DoH JSON API
     # or they return a 400 HTTP response code
-    if 'Accept' in flow.request.headers:
-        if flow.request.headers['Accept'] == 'application/dns-json':
-            return True
+    if (
+        'Accept' in flow.request.headers
+        and flow.request.headers['Accept'] == 'application/dns-json'
+    ):
+        return True
     # Google's DoH JSON API is https://dns.google/resolve
     path = flow.request.path.split('?')[0]
-    if flow.request.host == 'dns.google' and path == '/resolve':
-        return True
-    return False
+    return flow.request.host == 'dns.google' and path == '/resolve'
 
 
 def _request_has_doh_looking_path(flow):
@@ -179,8 +179,7 @@ doh_request_detection_checks = [
 
 def request(flow):
     for check in doh_request_detection_checks:
-        is_doh = check(flow)
-        if is_doh:
+        if is_doh := check(flow):
             ctx.log.warn("[DoH Detection] DNS over HTTPS request detected via method \"%s\"" % check.__name__)
             flow.kill()
             break

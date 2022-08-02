@@ -50,8 +50,9 @@ class ViewGraphQL(base.View):
 
         data = parse_json(data)
 
-        if data is not PARSE_ERROR:
-            if is_graphql_query(data) or is_graphql_batch_query(data):
-                return 2
+        if data is not PARSE_ERROR and (
+            is_graphql_query(data) or is_graphql_batch_query(data)
+        ):
+            return 2
 
         return 0

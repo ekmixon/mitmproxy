@@ -45,8 +45,7 @@ def response(flow: http.HTTPFlow) -> None:
     # strip links in 'Location' header
     if flow.response.headers.get('Location', '').startswith('https://'):
         location = flow.response.headers['Location']
-        hostname = urllib.parse.urlparse(location).hostname
-        if hostname:
+        if hostname := urllib.parse.urlparse(location).hostname:
             secure_hosts.add(hostname)
         flow.response.headers['Location'] = location.replace('https://', 'http://', 1)
 

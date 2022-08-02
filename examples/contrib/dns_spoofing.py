@@ -43,8 +43,7 @@ class Rerouter:
             port = 80
 
         host_header = flow.request.host_header
-        m = parse_host_header.match(host_header)
-        if m:
+        if m := parse_host_header.match(host_header):
             host_header = m.group("host").strip("[]")
             if m.group("port"):
                 port = int(m.group("port"))

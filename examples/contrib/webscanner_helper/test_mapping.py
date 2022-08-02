@@ -156,10 +156,10 @@ class TestMappingAddon:
         else:
             assert False
 
-    def test_dump(selfself, tmpdir):
+    def test_dump(self, tmpdir):
         tmpfile = tmpdir.join("tmpfile")
         with open(tmpfile, "w") as tfile:
             tfile.write("{}")
         mapping = MappingAddon(tmpfile, persistent=True)
-        with mock.patch('examples.complex.webscanner_helper.urldict.URLDict.dump', selfself.mock_dump):
+        with mock.patch('examples.complex.webscanner_helper.urldict.URLDict.dump', self.mock_dump):
             mapping.done()

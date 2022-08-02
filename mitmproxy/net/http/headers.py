@@ -36,6 +36,4 @@ def assemble_content_type(type, subtype, parameters):
         f"{k}={v}"
         for k, v in parameters.items()
     )
-    return "{}/{}; {}".format(
-        type, subtype, params
-    )
+    return f"{type}/{subtype}; {params}"

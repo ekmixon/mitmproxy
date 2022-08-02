@@ -19,7 +19,6 @@ class TestInjectionGenerator:
         f = tflow.tflow(resp=tutils.tresp())
         injection_generator = InjectionGenerator()
         injection_generator.inject(index=index, flow=f)
-        assert True
 
 
 class TestHTMLInjection:
@@ -100,8 +99,11 @@ class TestUrlInjectionAddon:
         tmpfile = tmpdir.join("tmpfile")
         with open(tmpfile, "w") as tfile:
             json.dump(index, tfile)
-        flt = f"~u .*/site.html$"
-        url_injection = UrlInjectionAddon(f"~u .*/site.html$", tmpfile, HTMLInjection(insert=True))
+        flt = "~u .*/site.html$"
+        url_injection = UrlInjectionAddon(
+            "~u .*/site.html$", tmpfile, HTMLInjection(insert=True)
+        )
+
         assert "http://example.com:80" in url_injection.url_store
         fltr = flowfilter.parse(flt)
         f = tflow.tflow(resp=tutils.tresp())

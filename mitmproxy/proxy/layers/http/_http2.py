@@ -64,32 +64,24 @@ class Http2Connection(HttpConnection):
     def is_closed(self, stream_id: int) -> bool:
         """Check if a non-idle stream is closed"""
         stream = self.h2_conn.streams.get(stream_id, None)
-        if (
-            stream is not None
-            and
-            stream.state_machine.state is not h2.stream.StreamState.CLOSED
-            and
-            self.h2_conn.state_machine.state is not h2.connection.ConnectionState.CLOSED
-        ):
-            return False
-        else:
-            return True
+        return (
+            stream is None
+            or stream.state_machine.state is h2.stream.StreamState.CLOSED
+            or self.h2_conn.state_machine.state
+            is h2.connection.ConnectionState.CLOSED
+        )
 
     def is_open_for_us(self, stream_id: int) -> bool:
         """Check if we can write to a non-idle stream."""
         stream = self.h2_conn.streams.get(stream_id, None)
-        if (
+        return (
             stream is not None
-            and
-            stream.state_machine.state is not h2.stream.StreamState.HALF_CLOSED_LOCAL
-            and
-            stream.state_machine.state is not h2.stream.StreamState.CLOSED
-            and
-            self.h2_conn.state_machine.state is not h2.connection.ConnectionState.CLOSED
-        ):
-            return True
-        else:
-            return False
+            and stream.state_machine.state
+            is not h2.stream.StreamState.HALF_CLOSED_LOCAL
+            and stream.state_machine.state is not h2.stream.StreamState.CLOSED
+            and self.h2_conn.state_machine.state
+            is not h2.connection.ConnectionState.CLOSED
+        )
 
     def _handle_event(self, event: Event) -> CommandGenerator[None]:
         if isinstance(event, Start):
@@ -113,13 +105,12 @@ class Http2Connection(HttpConnection):
                         status_codes.CLIENT_CLOSED_REQUEST: h2.errors.ErrorCodes.CANCEL,
                     }.get(event.code, h2.errors.ErrorCodes.INTERNAL_ERROR)
                     stream: h2.stream.H2Stream = self.h2_conn.streams[event.stream_id]
-                    send_error_message = (
+                    if send_error_message := (
                         isinstance(event, ResponseProtocolError)
                         and self.is_open_for_us(event.stream_id)
                         and not stream.state_machine.headers_sent
                         and event.code != status_codes.NO_RESPONSE
-                    )
-                    if send_error_message:
+                    ):
                         self.h2_conn.send_headers(event.stream_id, [
                             (b":status", b"%d" % event.code),
                             (b"server", version.MITMPROXY.encode()),
@@ -134,8 +125,7 @@ class Http2Connection(HttpConnection):
                         self.h2_conn.reset_stream(event.stream_id, code)
             else:
                 raise AssertionError(f"Unexpected event: {event}")
-            data_to_send = self.h2_conn.data_to_send()
-            if data_to_send:
+            if data_to_send := self.h2_conn.data_to_send():
                 yield SendData(self.conn, data_to_send)
 
         elif isinstance(event, DataReceived):
@@ -158,8 +148,7 @@ class Http2Connection(HttpConnection):
                         yield Log(f"{self.debug}[h2] done", "debug")
                     return
 
-            data_to_send = self.h2_conn.data_to_send()
-            if data_to_send:
+            if data_to_send := self.h2_conn.data_to_send():
                 yield SendData(self.conn, data_to_send)
 
         elif isinstance(event, ConnectionClosed):
@@ -174,7 +163,7 @@ class Http2Connection(HttpConnection):
             if state is StreamState.HEADERS_RECEIVED:
                 yield ReceiveHttp(self.ReceiveData(event.stream_id, event.data))
             elif state is StreamState.EXPECTING_HEADERS:
-                yield from self.protocol_error(f"Received HTTP/2 data frame, expected headers.")
+                yield from self.protocol_error("Received HTTP/2 data frame, expected headers.")
                 return True
             self.h2_conn.acknowledge_received_data(event.flow_controlled_length, event.stream_id)
         elif isinstance(event, h2.events.TrailersReceived):
@@ -200,8 +189,6 @@ class Http2Connection(HttpConnection):
                 yield ReceiveHttp(self.ReceiveProtocolError(event.stream_id, f"stream reset by client ({err_str})",
                                                             code=err_code))
                 self.streams.pop(event.stream_id)
-            else:
-                pass  # We don't track priority frames which could be followed by a stream reset here.
         elif isinstance(event, h2.exceptions.ProtocolError):
             yield from self.protocol_error(f"HTTP/2 protocol error: {event}")
             return True
@@ -303,31 +290,30 @@ class Http2Server(Http2Connection):
             yield from super()._handle_event(event)
 
     def handle_h2_event(self, event: h2.events.Event) -> CommandGenerator[bool]:
-        if isinstance(event, h2.events.RequestReceived):
-            try:
-                host, port, method, scheme, authority, path, headers = parse_h2_request_headers(event.headers)
-            except ValueError as e:
-                yield from self.protocol_error(f"Invalid HTTP/2 request headers: {e}")
-                return True
-            request = http.Request(
-                host=host,
-                port=port,
-                method=method,
-                scheme=scheme,
-                authority=authority,
-                path=path,
-                http_version=b"HTTP/2.0",
-                headers=headers,
-                content=None,
-                trailers=None,
-                timestamp_start=time.time(),
-                timestamp_end=None,
-            )
-            self.streams[event.stream_id] = StreamState.HEADERS_RECEIVED
-            yield ReceiveHttp(RequestHeaders(event.stream_id, request, end_stream=bool(event.stream_ended)))
-            return False
-        else:
+        if not isinstance(event, h2.events.RequestReceived):
             return (yield from super().handle_h2_event(event))
+        try:
+            host, port, method, scheme, authority, path, headers = parse_h2_request_headers(event.headers)
+        except ValueError as e:
+            yield from self.protocol_error(f"Invalid HTTP/2 request headers: {e}")
+            return True
+        request = http.Request(
+            host=host,
+            port=port,
+            method=method,
+            scheme=scheme,
+            authority=authority,
+            path=path,
+            http_version=b"HTTP/2.0",
+            headers=headers,
+            content=None,
+            trailers=None,
+            timestamp_start=time.time(),
+            timestamp_end=None,
+        )
+        self.streams[event.stream_id] = StreamState.HEADERS_RECEIVED
+        yield ReceiveHttp(RequestHeaders(event.stream_id, request, end_stream=bool(event.stream_ended)))
+        return False
 
 
 class Http2Client(Http2Connection):
@@ -383,13 +369,14 @@ class Http2Client(Http2Connection):
                 cmd.event.stream_id = self.their_stream_id[cmd.event.stream_id]
             yield cmd
 
-        can_resume_queue = (
-            self.stream_queue and
-            self.h2_conn.open_outbound_streams < (
-                self.provisional_max_concurrency or self.h2_conn.remote_settings.max_concurrent_streams
+        if can_resume_queue := (
+            self.stream_queue
+            and self.h2_conn.open_outbound_streams
+            < (
+                self.provisional_max_concurrency
+                or self.h2_conn.remote_settings.max_concurrent_streams
             )
-        )
-        if can_resume_queue:
+        ):
             # popitem would be LIFO, but we want FIFO.
             events = self.stream_queue.pop(next(iter(self.stream_queue)))
             for event in events:
@@ -427,7 +414,7 @@ class Http2Client(Http2Connection):
     def handle_h2_event(self, event: h2.events.Event) -> CommandGenerator[bool]:
         if isinstance(event, h2.events.ResponseReceived):
             if self.streams.get(event.stream_id, None) is not StreamState.EXPECTING_HEADERS:
-                yield from self.protocol_error(f"Received unexpected HTTP/2 response.")
+                yield from self.protocol_error("Received unexpected HTTP/2 response.")
                 return True
 
             try:
@@ -450,7 +437,10 @@ class Http2Client(Http2Connection):
             yield ReceiveHttp(ResponseHeaders(event.stream_id, response, bool(event.stream_ended)))
             return False
         elif isinstance(event, h2.events.RequestReceived):
-            yield from self.protocol_error(f"HTTP/2 protocol error: received request from server")
+            yield from self.protocol_error(
+                "HTTP/2 protocol error: received request from server"
+            )
+
             return True
         elif isinstance(event, h2.events.RemoteSettingsChanged):
             # We have received at least one settings from now,

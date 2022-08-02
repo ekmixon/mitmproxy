@@ -55,28 +55,27 @@ def file_candidates(url: str, spec: MapLocalSpec) -> typing.List[Path]:
     m = re.search(spec.regex, url)
     assert m
     if m.groups():
-        suffix = m.group(1)
+        suffix = m[1]
     else:
         suffix = re.split(spec.regex, url, maxsplit=1)[1]
         suffix = suffix.split("?")[0]  # remove query string
         suffix = suffix.strip("/")
 
-    if suffix:
-        decoded_suffix = urllib.parse.unquote(suffix)
-        suffix_candidates = [decoded_suffix, f"{decoded_suffix}/index.html"]
-
-        escaped_suffix = re.sub(r"[^0-9a-zA-Z\-_.=(),/]", "_", decoded_suffix)
-        if decoded_suffix != escaped_suffix:
-            suffix_candidates.extend([escaped_suffix, f"{escaped_suffix}/index.html"])
-        try:
-            return [
-                _safe_path_join(spec.local_path, x)
-                for x in suffix_candidates
-            ]
-        except ValueError:
-            return []
-    else:
+    if not suffix:
         return [spec.local_path / "index.html"]
+    decoded_suffix = urllib.parse.unquote(suffix)
+    suffix_candidates = [decoded_suffix, f"{decoded_suffix}/index.html"]
+
+    escaped_suffix = re.sub(r"[^0-9a-zA-Z\-_.=(),/]", "_", decoded_suffix)
+    if decoded_suffix != escaped_suffix:
+        suffix_candidates.extend([escaped_suffix, f"{escaped_suffix}/index.html"])
+    try:
+        return [
+            _safe_path_join(spec.local_path, x)
+            for x in suffix_candidates
+        ]
+    except ValueError:
+        return []
 
 
 class MapLocal:
@@ -119,18 +118,14 @@ class MapLocal:
                     candidates = file_candidates(url, spec)
                 all_candidates.extend(candidates)
 
-                local_file = None
-                for candidate in candidates:
-                    if candidate.is_file():
-                        local_file = candidate
-                        break
-
-                if local_file:
+                if local_file := next(
+                    (candidate for candidate in candidates if candidate.is_file()),
+                    None,
+                ):
                     headers = {
                         "Server": version.MITMPROXY
                     }
-                    mimetype = mimetypes.guess_type(str(local_file))[0]
-                    if mimetype:
+                    if mimetype := mimetypes.guess_type(str(local_file))[0]:
                         headers["Content-Type"] = mimetype
 
                     try:

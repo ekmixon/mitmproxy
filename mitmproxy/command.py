@@ -18,7 +18,7 @@ def verify_arg_signature(f: typing.Callable, args: typing.Iterable[typing.Any], 
     try:
         sig.bind(*args, **kwargs)
     except TypeError as v:
-        raise exceptions.CommandError("command argument mismatch: %s" % v.args[0])
+        raise exceptions.CommandError(f"command argument mismatch: {v.args[0]}")
 
 
 def typename(t: type) -> str:
@@ -27,16 +27,14 @@ def typename(t: type) -> str:
     """
     if t == inspect._empty:  # type: ignore
         raise exceptions.CommandError("missing type annotation")
-    to = mitmproxy.types.CommandTypes.get(t, None)
-    if not to:
-        raise exceptions.CommandError("unsupported type: %s" % getattr(t, "__name__", t))
-    return to.display
+    if to := mitmproxy.types.CommandTypes.get(t, None):
+        return to.display
+    else:
+        raise exceptions.CommandError(f'unsupported type: {getattr(t, "__name__", t)}')
 
 
 def _empty_as_none(x: typing.Any) -> typing.Any:
-    if x == inspect.Signature.empty:
-        return None
-    return x
+    return None if x == inspect.Signature.empty else x
 
 
 class CommandParameter(typing.NamedTuple):
@@ -84,17 +82,14 @@ class Command:
     @property
     def parameters(self) -> typing.List[CommandParameter]:
         """Returns a list of CommandParameters."""
-        ret = []
-        for name, param in self.signature.parameters.items():
-            ret.append(CommandParameter(name, param.annotation, param.kind))
-        return ret
+        return [
+            CommandParameter(name, param.annotation, param.kind)
+            for name, param in self.signature.parameters.items()
+        ]
 
     def signature_help(self) -> str:
         params = " ".join(str(param) for param in self.parameters)
-        if self.return_type:
-            ret = f" -> {typename(self.return_type)}"
-        else:
-            ret = ""
+        ret = f" -> {typename(self.return_type)}" if self.return_type else ""
         return f"{self.name} {params}{ret}"
 
     def prepare_args(self, args: typing.Sequence[str]) -> inspect.BoundArguments:
@@ -246,7 +241,7 @@ class CommandManager:
         Call a command with native arguments. May raise CommandError.
         """
         if command_name not in self.commands:
-            raise exceptions.CommandError("Unknown command: %s" % command_name)
+            raise exceptions.CommandError(f"Unknown command: {command_name}")
         return self.commands[command_name].func(*args)
 
     def call_strings(self, command_name: str, args: typing.Sequence[str]) -> typing.Any:
@@ -254,7 +249,7 @@ class CommandManager:
         Call a command using a list of string arguments. May raise CommandError.
         """
         if command_name not in self.commands:
-            raise exceptions.CommandError("Unknown command: %s" % command_name)
+            raise exceptions.CommandError(f"Unknown command: {command_name}")
 
         return self.commands[command_name].call(args)
 
@@ -277,7 +272,7 @@ class CommandManager:
         cmds.sort(key=lambda x: x.signature_help())
         for c in cmds:
             for hl in (c.help or "").splitlines():
-                print("# " + hl, file=out)
+                print(f"# {hl}", file=out)
             print(c.signature_help(), file=out)
             print(file=out)
 

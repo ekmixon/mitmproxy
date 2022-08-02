@@ -39,14 +39,10 @@ class ASWBXMLCodePage:
 		self.tagLookup[tag] = token
 	
 	def getToken(self, tag):
-		if tag in self.tagLookup:
-			return self.tagLookup[tag]
-		return 0xFF
+		return self.tagLookup[tag] if tag in self.tagLookup else 0xFF
 	
 	def getTag(self, token):
-		if token in self.tokenLookup:
-			return self.tokenLookup[token]
-		return None
+		return self.tokenLookup[token] if token in self.tokenLookup else None
 	
 	def __repr__(self):
 		return str(self.tokenLookup)

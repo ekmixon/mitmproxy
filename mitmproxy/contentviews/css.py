@@ -18,8 +18,9 @@ CSS_SPECIAL_AREAS = (
     "'" + strutils.SINGLELINE_CONTENT + strutils.NO_ESCAPE + "'",
     '"' + strutils.SINGLELINE_CONTENT + strutils.NO_ESCAPE + '"',
     r"/\*" + strutils.MULTILINE_CONTENT + r"\*/",
-    "//" + strutils.SINGLELINE_CONTENT + "$"
+    f"//{strutils.SINGLELINE_CONTENT}$",
 )
+
 CSS_SPECIAL_CHARS = "{};:"
 
 

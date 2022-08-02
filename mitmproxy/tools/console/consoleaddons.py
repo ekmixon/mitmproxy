@@ -130,10 +130,10 @@ class ConsoleAddon:
         """
             Reset the current option in the options editor.
         """
-        fv = self.master.window.current("options")
-        if not fv:
+        if fv := self.master.window.current("options"):
+            self.master.commands.call_strings("options.reset.one", [fv.current_name()])
+        else:
             raise exceptions.CommandError("Not viewing options.")
-        self.master.commands.call_strings("options.reset.one", [fv.current_name()])
 
     @command.command("console.nav.start")
     def nav_start(self) -> None:
@@ -338,12 +338,15 @@ class ConsoleAddon:
         """
         fpart = getattr(flow, part, None)
         if not fpart:
-            raise exceptions.CommandError("Part must be either request or response, not %s." % part)
+            raise exceptions.CommandError(
+                f"Part must be either request or response, not {part}."
+            )
+
         t = fpart.headers.get("content-type")
-        content = fpart.get_content(strict=False)
-        if not content:
+        if content := fpart.get_content(strict=False):
+            self.master.spawn_external_viewer(content, t)
+        else:
             raise exceptions.CommandError("No content to view.")
-        self.master.spawn_external_viewer(content, t)
 
     @command.command("console.bodyview.options")
     def bodyview_options(self) -> typing.Sequence[str]:
@@ -396,9 +399,10 @@ class ConsoleAddon:
         flow.backup()
 
         require_dummy_response = (
-            flow_part in ("response-headers", "response-body", "set-cookies") and
-            flow.response is None
+            flow_part in {"response-headers", "response-body", "set-cookies"}
+            and flow.response is None
         )
+
         if require_dummy_response:
             flow.response = http.Response.make()
         if flow_part == "cookies":
@@ -415,11 +419,8 @@ class ConsoleAddon:
             self.master.switch_view("edit_focus_request_headers")
         elif flow_part == "response-headers":
             self.master.switch_view("edit_focus_response_headers")
-        elif flow_part in ("request-body", "response-body"):
-            if flow_part == "request-body":
-                message = flow.request
-            else:
-                message = flow.response
+        elif flow_part in {"request-body", "response-body"}:
+            message = flow.request if flow_part == "request-body" else flow.response
             c = self.master.spawn_editor(message.get_content(strict=False) or b"")
             # Many editors make it hard to save a file without a terminating
             # newline on the last line. When editing message bodies, this can
@@ -436,7 +437,7 @@ class ConsoleAddon:
             edited_url = self.master.spawn_editor(url)
             url = edited_url.rstrip(b"\n")
             flow.request.url = url.decode()
-        elif flow_part in ["method", "status_code", "reason"]:
+        elif flow_part in {"method", "status_code", "reason"}:
             self.master.commands.call_strings(
                 "console.command",
                 ["flow.set", "@focus", flow_part]
@@ -447,10 +448,10 @@ class ConsoleAddon:
             message.content = c.rstrip(b"\n")
 
     def _grideditor(self):
-        gewidget = self.master.window.current("grideditor")
-        if not gewidget:
+        if gewidget := self.master.window.current("grideditor"):
+            return gewidget.key_responder()
+        else:
             raise exceptions.CommandError("Not in a grideditor.")
-        return gewidget.key_responder()
 
     @command.command("console.grideditor.add")
     def grideditor_add(self) -> None:
@@ -501,7 +502,7 @@ class ConsoleAddon:
                     writer.writerow(
                         [strutils.always_str(x) or "" for x in row]  # type: ignore
                     )
-            ctx.log.alert("Saved %s rows as CSV." % (len(rows)))
+            ctx.log.alert(f"Saved {len(rows)} rows as CSV.")
         except OSError as e:
             ctx.log.error(str(e))
 
@@ -575,12 +576,7 @@ class ConsoleAddon:
             Bind a shortcut key.
         """
         try:
-            self.master.keymap.add(
-                key,
-                cmd + " " + " ".join(args),
-                contexts,
-                ""
-            )
+            self.master.keymap.add(key, f"{cmd} " + " ".join(args), contexts, "")
         except ValueError as v:
             raise exceptions.CommandError(v)
 
@@ -598,10 +594,10 @@ class ConsoleAddon:
         kwidget = self.master.window.current("keybindings")
         if not kwidget:
             raise exceptions.CommandError("Not viewing key bindings.")
-        f = kwidget.get_focused_binding()
-        if not f:
+        if f := kwidget.get_focused_binding():
+            return f
+        else:
             raise exceptions.CommandError("No key binding focused")
-        return f
 
     @command.command("console.key.unbind.focus")
     def key_unbind_focus(self) -> None:

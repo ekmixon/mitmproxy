@@ -94,11 +94,11 @@ class ConsoleMaster(master.Master):
             return
         if entry.level in ("error", "warn", "alert"):
             signals.status_message.send(
-                message = (
+                message=(
                     entry.level,
-                    "{}: {}".format(entry.level.title(), str(entry.msg).lstrip())
+                    f"{entry.level.title()}: {str(entry.msg).lstrip()}",
                 ),
-                expire=5
+                expire=5,
             )
 
     def sig_call_in(self, sender, seconds, callback, args=()):
@@ -122,13 +122,14 @@ class ConsoleMaster(master.Master):
             return m
         if m := os.environ.get("EDITOR"):
             return m
-        for editor in "sensible-editor", "nano", "vim":
-            if shutil.which(editor):
-                return editor
-        if os.name == "nt":
-            return "notepad"
-        else:
-            return "vi"
+        return next(
+            (
+                editor
+                for editor in ("sensible-editor", "nano", "vim")
+                if shutil.which(editor)
+            ),
+            "notepad" if os.name == "nt" else "vi",
+        )
 
     def spawn_editor(self, data):
         text = not isinstance(data, bytes)

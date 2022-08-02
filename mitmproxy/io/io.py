@@ -44,7 +44,7 @@ class FlowReader:
                 except ValueError as e:
                     raise exceptions.FlowReadException(str(e))
                 if mdata["type"] not in FLOW_TYPES:
-                    raise exceptions.FlowReadException("Unknown flow type: {}".format(mdata["type"]))
+                    raise exceptions.FlowReadException(f'Unknown flow type: {mdata["type"]}')
                 yield FLOW_TYPES[mdata["type"]].from_state(mdata)
         except (ValueError, TypeError, IndexError) as e:
             if str(e) == "not a tnetstring: empty file":

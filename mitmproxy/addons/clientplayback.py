@@ -49,15 +49,16 @@ class MockServer(layers.http.HttpConnection):
                 # TODO: Cover this once we support HTTP/1 trailers.
                 yield layers.http.ReceiveHttp(layers.http.RequestTrailers(1, self.flow.request.trailers))
             yield layers.http.ReceiveHttp(layers.http.RequestEndOfMessage(1))
-        elif isinstance(event, (
+        elif not isinstance(
+            event,
+            (
                 layers.http.ResponseHeaders,
                 layers.http.ResponseData,
                 layers.http.ResponseTrailers,
                 layers.http.ResponseEndOfMessage,
                 layers.http.ResponseProtocolError,
-        )):
-            pass
-        else:  # pragma: no cover
+            ),
+        ):  # pragma: no cover
             ctx.log(f"Unexpected event during replay: {event}")
 
 
@@ -150,16 +151,13 @@ class ClientPlayback:
             return "Can't replay live flow."
         if f.intercepted:
             return "Can't replay intercepted flow."
-        if isinstance(f, http.HTTPFlow):
-            if not f.request:
-                return "Can't replay flow with missing request."
-            if f.request.raw_content is None:
-                return "Can't replay flow with missing content."
-            if f.websocket is not None:
-                return "Can't replay WebSocket flows."
-        else:
+        if not isinstance(f, http.HTTPFlow):
             return "Can only replay HTTP flows."
-        return None
+        if not f.request:
+            return "Can't replay flow with missing request."
+        if f.request.raw_content is None:
+            return "Can't replay flow with missing content."
+        return "Can't replay WebSocket flows." if f.websocket is not None else None
 
     def load(self, loader):
         loader.add_option(
@@ -179,9 +177,11 @@ class ClientPlayback:
                 raise exceptions.OptionsError(str(e))
             self.start_replay(flows)
 
-        if "client_replay_concurrency" in updated:
-            if ctx.options.client_replay_concurrency not in [-1, 1]:
-                raise exceptions.OptionsError("Currently the only valid client_replay_concurrency values are -1 and 1.")
+        if (
+            "client_replay_concurrency" in updated
+            and ctx.options.client_replay_concurrency not in [-1, 1]
+        ):
+            raise exceptions.OptionsError("Currently the only valid client_replay_concurrency values are -1 and 1.")
 
     @command.command("replay.client.count")
     def count(self) -> int:
@@ -216,8 +216,7 @@ class ClientPlayback:
         """
         updated: typing.List[http.HTTPFlow] = []
         for f in flows:
-            err = self.check(f)
-            if err:
+            if err := self.check(f):
                 ctx.log.warn(err)
                 continue
 

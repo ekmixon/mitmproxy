@@ -152,15 +152,10 @@ class OptionListWalker(urwid.ListWalker):
 
     def get_prev(self, pos):
         pos = pos - 1
-        if pos < 0:
-            return None, None
-        return self._get(pos, False), pos
+        return (None, None) if pos < 0 else (self._get(pos, False), pos)
 
     def positions(self, reverse=False):
-        if reverse:
-            return reversed(range(len(self.opts)))
-        else:
-            return range(len(self.opts))
+        return reversed(range(len(self.opts))) if reverse else range(len(self.opts))
 
 
 class OptionsList(urwid.ListBox):
@@ -191,44 +186,43 @@ class OptionsList(urwid.ListBox):
             elif key == "esc":
                 self.walker.stop_editing()
                 return None
-        else:
-            if key == "m_start":
-                self.set_focus(0)
+        elif key == "m_start":
+            self.set_focus(0)
+            self.walker._modified()
+        elif key == "m_end":
+            self.set_focus(len(self.walker.opts) - 1)
+            self.walker._modified()
+        elif key == "m_select":
+            foc, idx = self.get_focus()
+            if foc.opt.typespec == bool:
+                self.master.options.toggler(foc.opt.name)()
+                # Bust the focus widget cache
+                self.set_focus(self.walker.index)
+            elif can_edit_inplace(foc.opt):
+                self.walker.start_editing()
                 self.walker._modified()
-            elif key == "m_end":
-                self.set_focus(len(self.walker.opts) - 1)
-                self.walker._modified()
-            elif key == "m_select":
-                foc, idx = self.get_focus()
-                if foc.opt.typespec == bool:
-                    self.master.options.toggler(foc.opt.name)()
-                    # Bust the focus widget cache
-                    self.set_focus(self.walker.index)
-                elif can_edit_inplace(foc.opt):
-                    self.walker.start_editing()
-                    self.walker._modified()
-                elif foc.opt.choices:
-                    self.master.overlay(
-                        overlay.Chooser(
-                            self.master,
-                            foc.opt.name,
-                            foc.opt.choices,
-                            foc.opt.current(),
-                            self.master.options.setter(foc.opt.name)
-                        )
+            elif foc.opt.choices:
+                self.master.overlay(
+                    overlay.Chooser(
+                        self.master,
+                        foc.opt.name,
+                        foc.opt.choices,
+                        foc.opt.current(),
+                        self.master.options.setter(foc.opt.name)
                     )
-                elif foc.opt.typespec == Sequence[str]:
-                    self.master.overlay(
-                        overlay.OptionsOverlay(
-                            self.master,
-                            foc.opt.name,
-                            foc.opt.current(),
-                            HELP_HEIGHT + 5
-                        ),
-                        valign="top"
-                    )
-                else:
-                    raise NotImplementedError()
+                )
+            elif foc.opt.typespec == Sequence[str]:
+                self.master.overlay(
+                    overlay.OptionsOverlay(
+                        self.master,
+                        foc.opt.name,
+                        foc.opt.current(),
+                        HELP_HEIGHT + 5
+                    ),
+                    valign="top"
+                )
+            else:
+                raise NotImplementedError()
         return super().keypress(size, key)
 
 
@@ -281,11 +275,7 @@ class Options(urwid.Pile, layoutwidget.LayoutWidget):
             self.widget_list[1].set_active(self.focus_position == 1)
             key = None
 
-        # This is essentially a copypasta from urwid.Pile's keypress handler.
-        # So much for "closed for modification, but open for extension".
-        item_rows = None
-        if len(size) == 2:
-            item_rows = self.get_item_rows(size, focus = True)
+        item_rows = self.get_item_rows(size, focus = True) if len(size) == 2 else None
         i = self.widget_list.index(self.focus_item)
         tsize = self.get_item_size(size, i, True, item_rows)
         return self.focus_item.keypress(tsize, key)

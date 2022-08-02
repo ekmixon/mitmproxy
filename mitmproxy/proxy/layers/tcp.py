@@ -97,11 +97,7 @@ class TCPLayer(layer.Layer):
 
         from_client = event.connection == self.context.client
         send_to: Connection
-        if from_client:
-            send_to = self.context.server
-        else:
-            send_to = self.context.client
-
+        send_to = self.context.server if from_client else self.context.client
         if isinstance(event, events.DataReceived):
             if self.flow:
                 tcp_message = tcp.TCPMessage(from_client, event.data)

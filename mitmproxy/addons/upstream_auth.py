@@ -11,9 +11,7 @@ from mitmproxy.utils import strutils
 def parse_upstream_auth(auth: str) -> bytes:
     pattern = re.compile(".+:")
     if pattern.search(auth) is None:
-        raise exceptions.OptionsError(
-            "Invalid upstream auth specification: %s" % auth
-        )
+        raise exceptions.OptionsError(f"Invalid upstream auth specification: {auth}")
     return b"Basic" + b" " + base64.b64encode(strutils.always_bytes(auth))
 
 

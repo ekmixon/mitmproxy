@@ -169,9 +169,10 @@ class Proxyserver:
         peername = w.get_extra_info('peername')
         asyncio_utils.set_task_debug_info(
             asyncio.current_task(),
-            name=f"Proxyserver.handle_connection",
+            name="Proxyserver.handle_connection",
             client=peername,
         )
+
         handler = ProxyConnectionHandler(
             self.master,
             r,

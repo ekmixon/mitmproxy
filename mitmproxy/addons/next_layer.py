@@ -131,21 +131,17 @@ class NextLayer:
         # 2. Check for TLS
         client_tls = is_tls_record_magic(data_client)
         if client_tls:
-            # client tls usually requires a server tls layer as parent layer, except:
-            #  - a secure web proxy doesn't have a server part.
-            #  - reverse proxy mode manages this itself.
             if (
                 s(modes.HttpProxy) or
                 s(modes.ReverseProxy) or
                 s(modes.ReverseProxy, layers.ServerTLSLayer)
             ):
                 return layers.ClientTLSLayer(context)
-            else:
-                # We already assign the next layer here os that ServerTLSLayer
-                # knows that it can safely wait for a ClientHello.
-                ret = layers.ServerTLSLayer(context)
-                ret.child_layer = layers.ClientTLSLayer(context)
-                return ret
+            # We already assign the next layer here os that ServerTLSLayer
+            # knows that it can safely wait for a ClientHello.
+            ret = layers.ServerTLSLayer(context)
+            ret.child_layer = layers.ClientTLSLayer(context)
+            return ret
 
         # 3. Setup the HTTP layer for a regular HTTP proxy or an upstream proxy.
         if (

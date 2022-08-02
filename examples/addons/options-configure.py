@@ -15,9 +15,12 @@ class AddHeader:
         )
 
     def configure(self, updates):
-        if "addheader" in updates:
-            if ctx.options.addheader is not None and ctx.options.addheader > 100:
-                raise exceptions.OptionsError("addheader must be <= 100")
+        if (
+            "addheader" in updates
+            and ctx.options.addheader is not None
+            and ctx.options.addheader > 100
+        ):
+            raise exceptions.OptionsError("addheader must be <= 100")
 
     def response(self, flow):
         if ctx.options.addheader is not None:

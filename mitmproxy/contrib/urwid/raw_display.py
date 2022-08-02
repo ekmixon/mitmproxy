@@ -408,9 +408,7 @@ class Screen(BaseScreen, RealTerminal):
         else:
             self.prev_input_resize = 0
 
-        if raw_keys:
-            return keys, raw
-        return keys
+        return (keys, raw) if raw_keys else keys
 
     def get_input_descriptors(self):
         """
@@ -618,9 +616,8 @@ class Screen(BaseScreen, RealTerminal):
 
     def _getch(self, timeout):
         ready = self._wait_for_input_ready(timeout)
-        if self.gpm_mev is not None:
-            if self.gpm_mev.stdout.fileno() in ready:
-                self.gpm_event_pending = True
+        if self.gpm_mev is not None and self.gpm_mev.stdout.fileno() in ready:
+            self.gpm_event_pending = True
         fd = self._input_fileno()
         if fd is not None and fd in ready:
             if IS_WINDOWS:
@@ -670,7 +667,7 @@ class Screen(BaseScreen, RealTerminal):
                 append_button( 2 + flag )
                 next |= 4
 
-        if ev == 20 or ev == 36 or ev == 52: # press
+        if ev in {20, 36, 52}: # press
             if b & 4 and last & 1 == 0:
                 append_button( 0 )
                 next |= 1
@@ -788,24 +785,24 @@ class Screen(BaseScreen, RealTerminal):
         if not partial_display():
             o.append(escape.CURSOR_HOME)
 
-        if self.screen_buf:
-            osb = self.screen_buf
-        else:
-            osb = []
+        osb = self.screen_buf or []
         sb = []
         cy = self._cy
         y = -1
 
         def set_cursor_home():
-            if not partial_display():
-                return escape.set_cursor_position(0, 0)
-            return (escape.CURSOR_HOME_COL +
-                escape.move_cursor_up(cy))
+            return (
+                (escape.CURSOR_HOME_COL + escape.move_cursor_up(cy))
+                if partial_display()
+                else escape.set_cursor_position(0, 0)
+            )
 
         def set_cursor_row(y):
-            if not partial_display():
-                return escape.set_cursor_position(0, y)
-            return escape.move_cursor_down(y - cy)
+            return (
+                escape.move_cursor_down(y - cy)
+                if partial_display()
+                else escape.set_cursor_position(0, y)
+            )
 
         def set_cursor_position(x, y):
             if not partial_display():
@@ -819,11 +816,7 @@ class Screen(BaseScreen, RealTerminal):
                 escape.move_cursor_right(x))
 
         def is_blank_row(row):
-            if len(row) > 1:
-                return False
-            if row[0][2].strip():
-                return False
-            return True
+            return False if len(row) > 1 else not row[0][2].strip()
 
         def attr_to_escape(a):
             if a in self._pal_escape:
@@ -1017,7 +1010,7 @@ class Screen(BaseScreen, RealTerminal):
             return fg + bg
 
         if a.foreground_true:
-            fg = "38;2;%d;%d;%d" %(a.get_rgb_values()[0:3])
+            fg = "38;2;%d;%d;%d" % a.get_rgb_values()[:3]
         elif a.foreground_high:
             fg = "38;5;%d" % a.foreground_number
         elif a.foreground_basic:
@@ -1048,7 +1041,7 @@ class Screen(BaseScreen, RealTerminal):
                 bg = "%d" % (a.background_number + 40)
         else:
             bg = "49"
-        return escape.ESC + "[0;%s;%s%sm" % (fg, st, bg)
+        return escape.ESC + f"[0;{fg};{st}{bg}m"
 
 
     def set_terminal_properties(self, colors=None, bright_is_bold=None,
@@ -1169,8 +1162,6 @@ class ReadInputThread(threading.Thread):
                     self._input.send(inp.Event.KeyEvent.uChar.AsciiChar)
                 elif inp.EventType == win32.EventType.WINDOW_BUFFER_SIZE_EVENT:
                     self._resize()
-                else:
-                    pass  # TODO: handle mouse events
 
 
 def _test():

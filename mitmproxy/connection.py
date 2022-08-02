@@ -107,9 +107,7 @@ class Connection(serializable.Serializable, metaclass=ABCMeta):
         return self.timestamp_tls_setup is not None
 
     def __eq__(self, other):
-        if isinstance(other, Connection):
-            return self.id == other.id
-        return False
+        return self.id == other.id if isinstance(other, Connection) else False
 
     def __hash__(self):
         return hash(self.id)
@@ -237,22 +235,16 @@ class Client(Connection):
         return self.cipher
 
     @property
-    def clientcert(self) -> Optional[certs.Cert]:  # pragma: no cover
+    def clientcert(self) -> Optional[certs.Cert]:    # pragma: no cover
         """*Deprecated:* An outdated alias for Connection.certificate_list[0]."""
         warnings.warn("Client.clientcert is deprecated, use Client.certificate_list instead.", DeprecationWarning,
                       stacklevel=2)
-        if self.certificate_list:
-            return self.certificate_list[0]
-        else:
-            return None
+        return self.certificate_list[0] if self.certificate_list else None
 
     @clientcert.setter
     def clientcert(self, val):  # pragma: no cover
         warnings.warn("Client.clientcert is deprecated, use Client.certificate_list instead.", DeprecationWarning)
-        if val:
-            self.certificate_list = [val]
-        else:
-            self.certificate_list = []
+        self.certificate_list = [val] if val else []
 
 
 class Server(Connection):
@@ -284,10 +276,7 @@ class Server(Connection):
             tls_state = ", tls"
         else:
             tls_state = ""
-        if self.sockname:
-            local_port = f", src_port={self.sockname[1]}"
-        else:
-            local_port = ""
+        local_port = f", src_port={self.sockname[1]}" if self.sockname else ""
         return f"Server({human.format_address(self.address)}, state={self.state.name.lower()}{tls_state}{local_port})"
 
     def __setattr__(self, name, value):
@@ -359,23 +348,17 @@ class Server(Connection):
         return self.peername
 
     @property
-    def cert(self) -> Optional[certs.Cert]:  # pragma: no cover
+    def cert(self) -> Optional[certs.Cert]:    # pragma: no cover
         """*Deprecated:* An outdated alias for `Connection.certificate_list[0]`."""
         warnings.warn("Server.cert is deprecated, use Server.certificate_list instead.", DeprecationWarning,
                       stacklevel=2)
-        if self.certificate_list:
-            return self.certificate_list[0]
-        else:
-            return None
+        return self.certificate_list[0] if self.certificate_list else None
 
     @cert.setter
     def cert(self, val):  # pragma: no cover
         warnings.warn("Server.cert is deprecated, use Server.certificate_list instead.", DeprecationWarning,
                       stacklevel=2)
-        if val:
-            self.certificate_list = [val]
-        else:
-            self.certificate_list = []
+        self.certificate_list = [val] if val else []
 
 
 __all__ = [

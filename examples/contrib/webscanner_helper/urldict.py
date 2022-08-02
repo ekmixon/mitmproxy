@@ -30,8 +30,7 @@ class URLDict(MutableMapping):
             raise KeyError
 
     def __setitem__(self, key: str, value):
-        fltr = flowfilter.parse(key)
-        if fltr:
+        if fltr := flowfilter.parse(key):
             self.store.__setitem__(fltr, value)
         else:
             raise ValueError("Not a valid filter")

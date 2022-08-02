@@ -45,9 +45,7 @@ def only(*types):
     def decorator(fn):
         @functools.wraps(fn)
         def filter_types(self, flow):
-            if isinstance(flow, types):
-                return fn(self, flow)
-            return False
+            return fn(self, flow) if isinstance(flow, types) else False
 
         return filter_types
 
@@ -69,8 +67,8 @@ class _Action(_Token):
     help: ClassVar[str]
 
     @classmethod
-    def make(klass, s, loc, toks):
-        return klass(*toks[1:])
+    def make(cls, s, loc, toks):
+        return cls(*toks[1:])
 
 
 class FErr(_Action):
@@ -78,7 +76,7 @@ class FErr(_Action):
     help = "Match error"
 
     def __call__(self, f):
-        return True if f.error else False
+        return bool(f.error)
 
 
 class FMarked(_Action):
@@ -213,9 +211,7 @@ class FContentTypeResponse(_Rex):
 
     @only(http.HTTPFlow)
     def __call__(self, f):
-        if f.response:
-            return _check_content_type(self.re, f.response)
-        return False
+        return _check_content_type(self.re, f.response) if f.response else False
 
 
 class FHead(_Rex):
@@ -227,9 +223,7 @@ class FHead(_Rex):
     def __call__(self, f):
         if f.request and self.re.search(bytes(f.request.headers)):
             return True
-        if f.response and self.re.search(bytes(f.response.headers)):
-            return True
-        return False
+        return bool(f.response and self.re.search(bytes(f.response.headers)))
 
 
 class FHeadRequest(_Rex):
@@ -262,12 +256,18 @@ class FBod(_Rex):
     @only(http.HTTPFlow, tcp.TCPFlow)
     def __call__(self, f):
         if isinstance(f, http.HTTPFlow):
-            if f.request and f.request.raw_content:
-                if self.re.search(f.request.get_content(strict=False)):
-                    return True
-            if f.response and f.response.raw_content:
-                if self.re.search(f.response.get_content(strict=False)):
-                    return True
+            if (
+                f.request
+                and f.request.raw_content
+                and self.re.search(f.request.get_content(strict=False))
+            ):
+                return True
+            if (
+                f.response
+                and f.response.raw_content
+                and self.re.search(f.response.get_content(strict=False))
+            ):
+                return True
             if f.websocket:
                 for msg in f.websocket.messages:
                     if self.re.search(msg.content):
@@ -287,9 +287,12 @@ class FBodRequest(_Rex):
     @only(http.HTTPFlow, tcp.TCPFlow)
     def __call__(self, f):
         if isinstance(f, http.HTTPFlow):
-            if f.request and f.request.raw_content:
-                if self.re.search(f.request.get_content(strict=False)):
-                    return True
+            if (
+                f.request
+                and f.request.raw_content
+                and self.re.search(f.request.get_content(strict=False))
+            ):
+                return True
             if f.websocket:
                 for msg in f.websocket.messages:
                     if msg.from_client and self.re.search(msg.content):
@@ -308,9 +311,12 @@ class FBodResponse(_Rex):
     @only(http.HTTPFlow, tcp.TCPFlow)
     def __call__(self, f):
         if isinstance(f, http.HTTPFlow):
-            if f.response and f.response.raw_content:
-                if self.re.search(f.response.get_content(strict=False)):
-                    return True
+            if (
+                f.response
+                and f.response.raw_content
+                and self.re.search(f.response.get_content(strict=False))
+            ):
+                return True
             if f.websocket:
                 for msg in f.websocket.messages:
                     if not msg.from_client and self.re.search(msg.content):
@@ -353,16 +359,14 @@ class FUrl(_Rex):
     # FUrl is special, because it can be "naked".
 
     @classmethod
-    def make(klass, s, loc, toks):
+    def make(cls, s, loc, toks):
         if len(toks) > 1:
             toks = toks[1:]
-        return klass(*toks)
+        return cls(*toks)
 
     @only(http.HTTPFlow)
     def __call__(self, f):
-        if not f or not f.request:
-            return False
-        return self.re.search(f.request.pretty_url)
+        return self.re.search(f.request.pretty_url) if f and f.request else False
 
 
 class FSrc(_Rex):
@@ -373,7 +377,7 @@ class FSrc(_Rex):
     def __call__(self, f):
         if not f.client_conn or not f.client_conn.peername:
             return False
-        r = "{}:{}".format(f.client_conn.peername[0], f.client_conn.peername[1])
+        r = f"{f.client_conn.peername[0]}:{f.client_conn.peername[1]}"
         return f.client_conn.peername and self.re.search(r)
 
 
@@ -385,7 +389,7 @@ class FDst(_Rex):
     def __call__(self, f):
         if not f.server_conn or not f.server_conn.address:
             return False
-        r = "{}:{}".format(f.server_conn.address[0], f.server_conn.address[1])
+        r = f"{f.server_conn.address[0]}:{f.server_conn.address[1]}"
         return f.server_conn.address and self.re.search(r)
 
 
@@ -626,28 +630,16 @@ def match(flt: Union[str, TFilter], flow: flow.Flow) -> bool:
     """
     if isinstance(flt, str):
         flt = parse(flt)
-    if flt:
-        return flt(flow)
-    return True
+    return flt(flow) if flt else True
 
 
 match_all: TFilter = parse("~all")
 """A filter function that matches all flows"""
 
 
-help = []
-for a in filter_unary:
-    help.append(
-        (f"~{a.code}", a.help)
-    )
-for b in filter_rex:
-    help.append(
-        (f"~{b.code} regex", b.help)
-    )
-for c in filter_int:
-    help.append(
-        (f"~{c.code} int", c.help)
-    )
+help = [(f"~{a.code}", a.help) for a in filter_unary]
+help.extend((f"~{b.code} regex", b.help) for b in filter_rex)
+help.extend((f"~{c.code} int", c.help) for c in filter_int)
 help.sort()
 help.extend(
     [

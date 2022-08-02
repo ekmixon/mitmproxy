@@ -18,14 +18,11 @@ def write_buf(out, field_tag, body, indent_level):
 
 def format_pbuf(raw):
     out = io.StringIO()
-    stack = []
-
     try:
         buf = google_protobuf.GoogleProtobuf(KaitaiStream(io.BytesIO(raw)))
     except:
         return False
-    stack.extend([(pair, 0) for pair in buf.pairs[::-1]])
-
+    stack = [(pair, 0) for pair in buf.pairs[::-1]]
     while len(stack):
         pair, indent_level = stack.pop()
 
@@ -48,11 +45,7 @@ def format_pbuf(raw):
         except:
             write_buf(out, pair.field_tag, body, indent_level)
 
-        if stack:
-            prev_level = stack[-1][1]
-        else:
-            prev_level = 0
-
+        prev_level = stack[-1][1] if stack else 0
         if prev_level < indent_level:
             levels = int((indent_level - prev_level) / 2)
             for i in range(1, levels + 1):
@@ -73,11 +66,10 @@ class ViewProtobuf(base.View):
     ]
 
     def __call__(self, data, **metadata):
-        decoded = format_pbuf(data)
-        if not decoded:
+        if decoded := format_pbuf(data):
+            return "Protobuf", base.format_text(decoded)
+        else:
             raise ValueError("Failed to parse input.")
-
-        return "Protobuf", base.format_text(decoded)
 
     def render_priority(self, data: bytes, *, content_type: Optional[str] = None, **metadata) -> float:
         return float(bool(data) and content_type in self.__content_types)

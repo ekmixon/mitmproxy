@@ -430,87 +430,80 @@ class SolarizedLight(LowLight):
     )
 
 
+
+
 class SolarizedDark(LowDark):
     high = dict(
-        background = (sol_base2, sol_base03),
-        title = (sol_blue, 'default'),
-        text = (sol_base1, 'default'),
-
-        # Status bar & heading
-        heading = (sol_base2, sol_base01),
-        heading_key = (sol_blue + ",bold", sol_base01),
-        heading_inactive = (sol_base1, sol_base02),
-
-        # Help
-        key = (sol_blue, 'default',),
-        head = (sol_base2, 'default'),
-
-        # Options
-        option_selected = (sol_base03, sol_base00),
-        option_selected_key = (sol_blue, sol_base00),
-        option_active = (sol_orange, 'default'),
-        option_active_selected = (sol_orange, sol_base00),
-
-        # List and Connections
-        focus = (sol_base1, 'default'),
-
-        method_get = (sol_green, 'default'),
-        method_post = (sol_orange, 'default'),
-        method_delete = (sol_red, 'default'),
-        method_head = (sol_cyan, 'default'),
-        method_put = (sol_red, 'default'),
-        method_other = (sol_magenta, 'default'),
-        method_http2_push = (sol_base01, 'default'),
-
-        url_punctuation = ('h242', 'default'),
-        url_domain = ('h252', 'default'),
-        url_filename = ('h132', 'default'),
-        url_extension = ('h96', 'default'),
-        url_query_key = ('h37', 'default'),
-        url_query_value = ('h30', 'default'),
-
-        content_none = (sol_base01, 'default'),
-        content_text = (sol_base1, 'default'),
-        content_media = (sol_blue, 'default'),
-
-        code_200 = (sol_green, 'default'),
-        code_300 = (sol_blue, 'default'),
-        code_400 = (sol_orange, 'default',),
-        code_500 = (sol_red, 'default'),
-        code_other = (sol_magenta, 'default'),
-
-        error = (sol_red, 'default'),
-        warn = (sol_orange, 'default'),
-        alert = (sol_magenta, 'default'),
-
-        header = (sol_blue, 'default'),
-        highlight = (sol_base01, 'default'),
-        intercept = (sol_red, 'default',),
-        replay = (sol_green, 'default',),
-
-        # Hex view
-        offset = (sol_cyan, 'default'),
-
-        # JSON view
-        json_string = (sol_cyan, 'default'),
-        json_number = (sol_blue, 'default'),
-        json_boolean = (sol_magenta, 'default'),
-
-        # TCP flow details
-        from_client = (sol_blue, 'default'),
-        to_client = (sol_red, 'default'),
-
-        # Grid Editor
-        focusfield = (sol_base0, sol_base02),
-        focusfield_error = (sol_red, sol_base02),
-        field_error = (sol_red, 'default'),
-        editfield = (sol_base1, 'default'),
-
-        commander_command = (sol_blue, 'default'),
-        commander_invalid = (sol_orange, 'default'),
-        commander_hint = (sol_base00, 'default'),
+        background=(sol_base2, sol_base03),
+        title=(sol_blue, 'default'),
+        text=(sol_base1, 'default'),
+        heading=(sol_base2, sol_base01),
+        heading_key=(f"{sol_blue},bold", sol_base01),
+        heading_inactive=(sol_base1, sol_base02),
+        key=(
+            sol_blue,
+            'default',
+        ),
+        head=(sol_base2, 'default'),
+        option_selected=(sol_base03, sol_base00),
+        option_selected_key=(sol_blue, sol_base00),
+        option_active=(sol_orange, 'default'),
+        option_active_selected=(sol_orange, sol_base00),
+        focus=(sol_base1, 'default'),
+        method_get=(sol_green, 'default'),
+        method_post=(sol_orange, 'default'),
+        method_delete=(sol_red, 'default'),
+        method_head=(sol_cyan, 'default'),
+        method_put=(sol_red, 'default'),
+        method_other=(sol_magenta, 'default'),
+        method_http2_push=(sol_base01, 'default'),
+        url_punctuation=('h242', 'default'),
+        url_domain=('h252', 'default'),
+        url_filename=('h132', 'default'),
+        url_extension=('h96', 'default'),
+        url_query_key=('h37', 'default'),
+        url_query_value=('h30', 'default'),
+        content_none=(sol_base01, 'default'),
+        content_text=(sol_base1, 'default'),
+        content_media=(sol_blue, 'default'),
+        code_200=(sol_green, 'default'),
+        code_300=(sol_blue, 'default'),
+        code_400=(
+            sol_orange,
+            'default',
+        ),
+        code_500=(sol_red, 'default'),
+        code_other=(sol_magenta, 'default'),
+        error=(sol_red, 'default'),
+        warn=(sol_orange, 'default'),
+        alert=(sol_magenta, 'default'),
+        header=(sol_blue, 'default'),
+        highlight=(sol_base01, 'default'),
+        intercept=(
+            sol_red,
+            'default',
+        ),
+        replay=(
+            sol_green,
+            'default',
+        ),
+        offset=(sol_cyan, 'default'),
+        json_string=(sol_cyan, 'default'),
+        json_number=(sol_blue, 'default'),
+        json_boolean=(sol_magenta, 'default'),
+        from_client=(sol_blue, 'default'),
+        to_client=(sol_red, 'default'),
+        focusfield=(sol_base0, sol_base02),
+        focusfield_error=(sol_red, sol_base02),
+        field_error=(sol_red, 'default'),
+        editfield=(sol_base1, 'default'),
+        commander_command=(sol_blue, 'default'),
+        commander_invalid=(sol_orange, 'default'),
+        commander_hint=(sol_base00, 'default'),
     )
+
     gen_rgb_gradient(high, [(15, 0, 0), (15, 15, 0), (0, 15, 0), (0, 15, 15), (0, 0, 15)])
+
 
 
 DEFAULT = "dark"

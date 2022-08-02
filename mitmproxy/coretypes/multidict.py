@@ -50,10 +50,10 @@ class _MultiDict(MutableMapping[KT, VT], metaclass=ABCMeta):
         """
 
     def __getitem__(self, key: KT) -> VT:
-        values = self.get_all(key)
-        if not values:
+        if values := self.get_all(key):
+            return self._reduce_values(values)
+        else:
             raise KeyError(key)
-        return self._reduce_values(values)
 
     def __setitem__(self, key: KT, value: VT) -> None:
         self.set_all(key, [value])
@@ -79,9 +79,7 @@ class _MultiDict(MutableMapping[KT, VT], metaclass=ABCMeta):
         return len({self._kconv(key) for key, _ in self.fields})
 
     def __eq__(self, other) -> bool:
-        if isinstance(other, MultiDict):
-            return self.fields == other.fields
-        return False
+        return self.fields == other.fields if isinstance(other, MultiDict) else False
 
     def get_all(self, key: KT) -> List[VT]:
         """
@@ -160,10 +158,7 @@ class _MultiDict(MutableMapping[KT, VT], metaclass=ABCMeta):
         If `multi` is True, all `(key, value)` pairs will be returned.
         If False, only one tuple per key is returned.
         """
-        if multi:
-            return self.fields
-        else:
-            return super().items()
+        return self.fields if multi else super().items()
 
 
 class MultiDict(_MultiDict[KT, VT], serializable.Serializable):

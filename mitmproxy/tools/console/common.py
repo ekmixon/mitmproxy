@@ -85,7 +85,7 @@ def format_keyvals(
 
 
 def fcol(s: str, attr: str) -> typing.Tuple[str, int, urwid.Text]:
-    s = str(s)
+    s = s
     return (
         "fixed",
         len(s),
@@ -151,7 +151,7 @@ def fixlen(s: str, maxlen: int) -> str:
     if len(s) <= maxlen:
         return s.ljust(maxlen)
     else:
-        return s[0:maxlen - len(SYMBOL_ELLIPSIS)] + SYMBOL_ELLIPSIS
+        return s[:maxlen - len(SYMBOL_ELLIPSIS)] + SYMBOL_ELLIPSIS
 
 
 def fixlen_r(s: str, maxlen: int) -> str:
@@ -192,11 +192,7 @@ class TruncatedText(urwid.Widget):
             attr = attr[::-1]
 
         text_len = len(text)  # TODO: unicode?
-        if size is not None and len(size) > 0:
-            width = size[0]
-        else:
-            width = text_len
-
+        width = size[0] if size is not None and len(size) > 0 else text_len
         if width >= text_len:
             remaining = width - text_len
             if remaining > 0:
@@ -207,7 +203,7 @@ class TruncatedText(urwid.Widget):
                 c_attr = attr
         else:
             visible_len = width - len(SYMBOL_ELLIPSIS)
-            visible_text = text[0:visible_len]
+            visible_text = text[:visible_len]
             c_text = visible_text + SYMBOL_ELLIPSIS
             c_attr = (urwid.util.rle_subseg(attr, 0, len(visible_text.encode())) +
                       [('focus', len(SYMBOL_ELLIPSIS.encode()))])
@@ -239,7 +235,7 @@ def rle_append_beginning_modify(rle, a_r):
         if a == al:
             rle[0] = (a, run + r)
         else:
-            rle[0:0] = [(a, r)]
+            rle[:0] = [(a, r)]
 
 
 def colorize_host(host):
@@ -289,12 +285,11 @@ def colorize_req(s):
                     a = 'url_punctuation'
                 else:
                     a = 'url_query_value'
+            elif c == '=':
+                in_val = True
+                a = 'url_punctuation'
             else:
-                if c == '=':
-                    in_val = True
-                    a = 'url_punctuation'
-                else:
-                    a = 'url_query_key'
+                a = 'url_query_key'
         elif i > i_ext:
             a = 'url_extension'
         elif i > i_last_slash:
@@ -309,10 +304,14 @@ def colorize_url(url):
     parts = url.split('/', 3)
     if len(parts) < 4 or len(parts[1]) > 0 or parts[0][-1:] != ':':
         return [('error', len(url))]  # bad URL
-    return [
-               (SCHEME_STYLES.get(parts[0], "scheme_other"), len(parts[0]) - 1),
-               ('url_punctuation', 3),  # ://
-           ] + colorize_host(parts[2]) + colorize_req('/' + parts[3])
+    return (
+        [
+            (SCHEME_STYLES.get(parts[0], "scheme_other"), len(parts[0]) - 1),
+            ('url_punctuation', 3),  # ://
+        ]
+        + colorize_host(parts[2])
+        + colorize_req(f'/{parts[3]}')
+    )
 
 
 def format_http_content_type(content_type: str) -> typing.Tuple[str, str]:
@@ -410,11 +409,10 @@ def format_http_flow_list(
 
     if render_mode is RenderMode.DETAILVIEW:
         req.append(fcol(human.format_timestamp(request_timestamp), "highlight"))
+    elif focused:
+        req.append(fcol(">>", "focus"))
     else:
-        if focused:
-            req.append(fcol(">>", "focus"))
-        else:
-            req.append(fcol("  ", "focus"))
+        req.append(fcol("  ", "focus"))
 
     method_style = HTTP_REQUEST_METHOD_STYLES.get(request_method, "method_other")
     req.append(fcol(request_method, method_style))
@@ -425,7 +423,7 @@ def format_http_flow_list(
     preamble_len = sum(x[1] for x in req) + len(req) - 1
 
     if request_http_version not in ("HTTP/1.0", "HTTP/1.1"):
-        request_url += " " + request_http_version
+        request_url += f" {request_http_version}"
     if intercepted and not response_code:
         url_style = "intercept"
     elif response_code or error_message:
@@ -446,11 +444,7 @@ def format_http_flow_list(
         ("fixed", preamble_len, urwid.Text(""))
     ]
     if response_code:
-        if intercepted:
-            style = "intercept"
-        else:
-            style = ""
-
+        style = "intercept" if intercepted else ""
         status_style = style or HTTP_RESPONSE_CODE_STYLE.get(response_code // 100, "code_other")
         resp.append(fcol(SYMBOL_RETURN, status_style))
         resp.append(fcol(str(response_code), status_style))
@@ -515,11 +509,7 @@ def format_http_flow_table(
         )
     ]
 
-    if intercepted and not response_code:
-        request_style = "intercept"
-    else:
-        request_style = ""
-
+    request_style = "intercept" if intercepted and not response_code else ""
     scheme_style = request_style or SCHEME_STYLES.get(request_scheme, "scheme_other")
     items.append(fcol(fixlen(request_scheme.upper(), 5), scheme_style))
 
@@ -532,11 +522,7 @@ def format_http_flow_table(
     items.append(('weight', 0.25, TruncatedText(request_host, colorize_host(request_host), 'right')))
     items.append(('weight', 1.0, TruncatedText(request_path, colorize_req(request_path), 'left')))
 
-    if intercepted and response_code:
-        response_style = "intercept"
-    else:
-        response_style = ""
-
+    response_style = "intercept" if intercepted and response_code else ""
     if response_code:
 
         status = str(response_code)
@@ -610,11 +596,10 @@ def format_tcp_flow(
         items.append(
             format_left_indicators(focused=focused, intercepted=False, timestamp=timestamp_start)
         )
+    elif focused:
+        items.append(fcol(">>", "focus"))
     else:
-        if focused:
-            items.append(fcol(">>", "focus"))
-        else:
-            items.append(fcol("  ", "focus"))
+        items.append(fcol("  ", "focus"))
 
     if render_mode is RenderMode.TABLE:
         items.append(fcol("TCP  ", SCHEME_STYLES["tcp"]))
@@ -659,19 +644,10 @@ def format_flow(
     """
     duration: typing.Optional[float]
     error_message: typing.Optional[str]
-    if f.error:
-        error_message = f.error.msg
-    else:
-        error_message = None
-
+    error_message = f.error.msg if f.error else None
     if isinstance(f, TCPFlow):
-        total_size = 0
-        for message in f.messages:
-            total_size += len(message.content)
-        if f.messages:
-            duration = f.messages[-1].timestamp - f.timestamp_start
-        else:
-            duration = None
+        total_size = sum(len(message.content) for message in f.messages)
+        duration = f.messages[-1].timestamp - f.timestamp_start if f.messages else None
         return format_tcp_flow(
             render_mode=render_mode,
             focused=focused,
@@ -708,10 +684,11 @@ def format_flow(
             duration = None
 
         scheme = f.request.scheme
-        if f.websocket is not None:
-            if scheme == "https":
+        if scheme == "https":
+            if f.websocket is not None:
                 scheme = "wss"
-            elif scheme == "http":
+        elif scheme == "http":
+            if f.websocket is not None:
                 scheme = "ws"
 
         if render_mode in (RenderMode.LIST, RenderMode.DETAILVIEW):

@@ -48,7 +48,7 @@ class TCPFlow(flow.Flow):
     _stateobject_attributes["messages"] = List[TCPMessage]
 
     def __repr__(self):
-        return "<TCPFlow ({} messages)>".format(len(self.messages))
+        return f"<TCPFlow ({len(self.messages)} messages)>"
 
 
 __all__ = [

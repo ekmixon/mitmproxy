@@ -87,7 +87,7 @@ def get_cookies(flow: http.HTTPFlow) -> Cookies:
     """ Return a dict going from cookie names to cookie values
           - Note that it includes both the cookies sent in the original request and
             the cookies sent by the server """
-    return {name: value for name, value in flow.request.cookies.fields}
+    return dict(flow.request.cookies.fields)
 
 
 def find_unclaimed_URLs(body, requestUrl):
@@ -98,14 +98,19 @@ def find_unclaimed_URLs(body, requestUrl):
                 return value
         return None
 
+
+
     class ScriptURLExtractor(HTMLParser):
         script_URLs: List[str] = []
 
         def handle_starttag(self, tag, attrs):
-            if (tag == "script" or tag == "iframe") and "src" in [name for name, value in attrs]:
+            if tag in ["script", "iframe"] and "src" in [
+                name for name, value in attrs
+            ]:
                 self.script_URLs.append(getValue(attrs, "src"))
             if tag == "link" and getValue(attrs, "rel") == "stylesheet" and "href" in [name for name, value in attrs]:
                 self.script_URLs.append(getValue(attrs, "href"))
+
 
     parser = ScriptURLExtractor()
     parser.feed(body)
@@ -172,10 +177,10 @@ def log_XSS_data(xss_info: Optional[XSSData]) -> None:
     if not xss_info:
         return
     ctx.log.error("===== XSS Found ====")
-    ctx.log.error("XSS URL: %s" % xss_info.url)
-    ctx.log.error("Injection Point: %s" % xss_info.injection_point)
-    ctx.log.error("Suggested Exploit: %s" % xss_info.exploit)
-    ctx.log.error("Line: %s" % xss_info.line)
+    ctx.log.error(f"XSS URL: {xss_info.url}")
+    ctx.log.error(f"Injection Point: {xss_info.injection_point}")
+    ctx.log.error(f"Suggested Exploit: {xss_info.exploit}")
+    ctx.log.error(f"Line: {xss_info.line}")
 
 
 def log_SQLi_data(sqli_info: Optional[SQLiData]) -> None:
@@ -183,10 +188,10 @@ def log_SQLi_data(sqli_info: Optional[SQLiData]) -> None:
     if not sqli_info:
         return
     ctx.log.error("===== SQLi Found =====")
-    ctx.log.error("SQLi URL: %s" % sqli_info.url)
-    ctx.log.error("Injection Point: %s" % sqli_info.injection_point)
-    ctx.log.error("Regex used: %s" % sqli_info.regex)
-    ctx.log.error("Suspected DBMS: %s" % sqli_info.dbms)
+    ctx.log.error(f"SQLi URL: {sqli_info.url}")
+    ctx.log.error(f"Injection Point: {sqli_info.injection_point}")
+    ctx.log.error(f"Regex used: {sqli_info.regex}")
+    ctx.log.error(f"Suspected DBMS: {sqli_info.dbms}")
     return
 
 
@@ -228,14 +233,12 @@ def inside_quote(qc: str, substring_bytes: bytes, text_index: int, body_bytes: b
     for index, char in enumerate(body):
         # Whether the next chunk of len(substring) chars is the substring
         next_part_is_substring = (
-            (not (index + len(substring) > len(body))) and
-            (body[index:index + len(substring)] == substring)
+            index + len(substring) <= len(body)
+            and body[index : index + len(substring)] == substring
         )
+
         # Whether this char is escaped with a \
-        is_not_escaped = (
-            (index - 1 < 0 or index - 1 > len(body)) or
-            (body[index - 1] != "\\")
-        )
+        is_not_escaped = index < 1 or index - 1 > len(body) or body[index - 1] != "\\"
         if char == qc and is_not_escaped:
             in_quote = not in_quote
         if next_part_is_substring:
@@ -256,19 +259,25 @@ def paths_to_text(html: str, string: str) -> List[str]:
         index = string.rfind(substr)
         return string[:index] + string[index + len(substr):]
 
+
+
     class PathHTMLParser(HTMLParser):
         currentPath = ""
         paths: List[str] = []
 
         def handle_starttag(self, tag, attrs):
-            self.currentPath += ("/" + tag)
+            self.currentPath += f"/{tag}"
 
         def handle_endtag(self, tag):
-            self.currentPath = remove_last_occurence_of_sub_string(self.currentPath, "/" + tag)
+            self.currentPath = remove_last_occurence_of_sub_string(
+                self.currentPath, f"/{tag}"
+            )
+
 
         def handle_data(self, data):
             if string in data:
                 self.paths.append(self.currentPath)
+
 
     parser = PathHTMLParser()
     parser.feed(html)

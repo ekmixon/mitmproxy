@@ -49,7 +49,7 @@ class Search:
 
         for _flow in flows:
             # Erase previous results while preserving other comments:
-            comments = list()
+            comments = []
             for c in _flow.comment.split('\n'):
                 if c.startswith(RESULTS_STR):
                     break
@@ -59,10 +59,8 @@ class Search:
             if _flow.marked == MARKER:
                 _flow.marked = False
 
-            results = {k: v for k, v in self.flow_results(_flow).items() if v}
-            if results:
-                comments.append(RESULTS_STR)
-                comments.append(dumps(results, indent=2))
+            if results := {k: v for k, v in self.flow_results(_flow).items() if v}:
+                comments.extend((RESULTS_STR, dumps(results, indent=2)))
                 _flow.comment = '\n'.join(comments)
                 _flow.marked = MARKER
 
@@ -71,23 +69,16 @@ class Search:
         return {k: v for k, v in results.items() if v}
 
     def flow_results(self, _flow):
-        results = dict()
-        results.update(
-            {'flow_comment': self.exp.findall(_flow.comment)})
+        results = {'flow_comment': self.exp.findall(_flow.comment)}
         if _flow.request is not None:
-            results.update(
-                {'request_path': self.exp.findall(_flow.request.path)})
-            results.update(
-                {'request_headers': self.header_results(_flow.request)})
+            results['request_path'] = self.exp.findall(_flow.request.path)
+            results['request_headers'] = self.header_results(_flow.request)
             if _flow.request.text:
-                results.update(
-                    {'request_body': self.exp.findall(_flow.request.text)})
+                results['request_body'] = self.exp.findall(_flow.request.text)
         if _flow.response is not None:
-            results.update(
-                {'response_headers': self.header_results(_flow.response)})
+            results['response_headers'] = self.header_results(_flow.response)
             if _flow.response.text:
-                results.update(
-                    {'response_body': self.exp.findall(_flow.response.text)})
+                results['response_body'] = self.exp.findall(_flow.response.text)
         return results
 
 

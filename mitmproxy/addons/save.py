@@ -74,7 +74,7 @@ class Save:
         for i in flows:
             stream.add(i)
         f.close()
-        ctx.log.alert("Saved %s flows." % len(flows))
+        ctx.log.alert(f"Saved {len(flows)} flows.")
 
     def tcp_start(self, flow):
         if self.stream:

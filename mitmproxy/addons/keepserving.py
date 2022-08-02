@@ -19,7 +19,7 @@ class KeepServing:
             "replay.client.count",
             "replay.server.count",
         ]
-        return any([ctx.master.commands.call(c) for c in checks])
+        return any(ctx.master.commands.call(c) for c in checks)
 
     def shutdown(self):  # pragma: no cover
         ctx.master.shutdown()

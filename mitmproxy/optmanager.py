@@ -48,10 +48,7 @@ class _Option:
         return copy.deepcopy(self._default)
 
     def current(self) -> typing.Any:
-        if self.value is unset:
-            v = self.default
-        else:
-            v = self.value
+        v = self.default if self.value is unset else self.value
         return copy.deepcopy(v)
 
     def set(self, value: typing.Any) -> None:
@@ -65,10 +62,7 @@ class _Option:
         return self.current() != self.default
 
     def __eq__(self, other) -> bool:
-        for i in self.__slots__:
-            if getattr(self, i) != getattr(other, i):
-                return False
-        return True
+        return all(getattr(self, i) == getattr(other, i) for i in self.__slots__)
 
     def __deepcopy__(self, _):
         o = _Option(
@@ -134,7 +128,7 @@ class OptManager:
         """
         for i in opts:
             if i not in self._options:
-                raise exceptions.OptionsError("No such option: %s" % i)
+                raise exceptions.OptionsError(f"No such option: {i}")
 
         # We reuse blinker's safe reference functionality to cope with weakrefs
         # to bound methods.
@@ -170,17 +164,13 @@ class OptManager:
         if attr in self._options:
             return self._options[attr].current()
         else:
-            raise AttributeError("No such option: %s" % attr)
+            raise AttributeError(f"No such option: {attr}")
 
     def __setattr__(self, attr, value):
-        # This is slightly tricky. We allow attributes to be set on the instance
-        # until we have an _options attribute. After that, assignment is sent to
-        # the update function, and will raise an error for unknown options.
-        opts = self.__dict__.get("_options")
-        if not opts:
-            super().__setattr__(attr, value)
-        else:
+        if opts := self.__dict__.get("_options"):
             self.update(**{attr: value})
+        else:
+            super().__setattr__(attr, value)
 
     def keys(self):
         return set(self._options.keys())
@@ -210,8 +200,7 @@ class OptManager:
                 known[k] = v
             else:
                 unknown[k] = v
-        updated = set(known.keys())
-        if updated:
+        if updated := set(known.keys()):
             with self.rollback(updated, reraise=True):
                 for k, v in known.items():
                     self._options[k].set(v)
@@ -223,9 +212,8 @@ class OptManager:
         self.deferred.update(unknown)
 
     def update(self, **kwargs):
-        u = self.update_known(**kwargs)
-        if u:
-            raise KeyError("Unknown options: %s" % ", ".join(u.keys()))
+        if u := self.update_known(**kwargs):
+            raise KeyError(f'Unknown options: {", ".join(u.keys())}')
 
     def setter(self, attr):
         """
@@ -233,10 +221,11 @@ class OptManager:
             taking a single argument.
         """
         if attr not in self._options:
-            raise KeyError("No such option: %s" % attr)
+            raise KeyError(f"No such option: {attr}")
 
         def setter(x):
             setattr(self, attr, x)
+
         return setter
 
     def toggler(self, attr):
@@ -245,13 +234,14 @@ class OptManager:
             that takes no arguments.
         """
         if attr not in self._options:
-            raise KeyError("No such option: %s" % attr)
+            raise KeyError(f"No such option: {attr}")
         o = self._options[attr]
         if o.typespec != bool:
             raise ValueError("Toggler can only be used with boolean options")
 
         def toggle():
             setattr(self, attr, not getattr(self, attr))
+
         return toggle
 
     def default(self, option: str) -> typing.Any:
@@ -269,13 +259,12 @@ class OptManager:
             value are ignored. Lists and tuples are appended to the current
             option value.
         """
-        toset = {}
-        for k, v in opts.items():
-            if v is not None:
-                if isinstance(v, (list, tuple)):
-                    toset[k] = getattr(self, k) + v
-                else:
-                    toset[k] = v
+        toset = {
+            k: getattr(self, k) + v if isinstance(v, (list, tuple)) else v
+            for k, v in opts.items()
+            if v is not None
+        }
+
         self.update(**toset)
 
     def __repr__(self):
@@ -299,10 +288,7 @@ class OptManager:
         unknown: typing.Dict[str, typing.List[str]] = collections.defaultdict(list)
         for i in spec:
             parts = i.split("=", maxsplit=1)
-            if len(parts) == 1:
-                optname, optval = parts[0], None
-            else:
-                optname, optval = parts[0], parts[1]
+            optname, optval = (parts[0], None) if len(parts) == 1 else (parts[0], parts[1])
             if optname in self._options:
                 vals[optname] = self.parse_setval(self._options[optname], optval, vals.get(optname))
             else:
@@ -310,7 +296,7 @@ class OptManager:
         if defer:
             self.deferred.update(unknown)
         elif unknown:
-            raise exceptions.OptionsError("Unknown options: %s" % ", ".join(unknown.keys()))
+            raise exceptions.OptionsError(f'Unknown options: {", ".join(unknown.keys())}')
         self.update(**vals)
 
     def process_deferred(self):
@@ -325,7 +311,7 @@ class OptManager:
                     optval = self.parse_setval(self._options[optname], optval, update.get(optname))
                     update[optname] = optval
         self.update(**update)
-        for k in update.keys():
+        for k in update:
             del self.deferred[k]
 
     def parse_setval(self, o: _Option, optstr: typing.Optional[str], currentvalue: typing.Any) -> typing.Any:
@@ -339,9 +325,9 @@ class OptManager:
                 try:
                     return int(optstr)
                 except ValueError:
-                    raise exceptions.OptionsError("Not an integer: %s" % optstr)
+                    raise exceptions.OptionsError(f"Not an integer: {optstr}")
             elif o.typespec == int:
-                raise exceptions.OptionsError("Option is required: %s" % o.name)
+                raise exceptions.OptionsError(f"Option is required: {o.name}")
             else:
                 return None
         elif o.typespec == bool:
@@ -359,10 +345,7 @@ class OptManager:
             if not optstr:
                 return []
             else:
-                if currentvalue:
-                    return currentvalue + [optstr]
-                else:
-                    return [optstr]
+                return currentvalue + [optstr] if currentvalue else [optstr]
         raise NotImplementedError("Unsupported option type: %s", o.typespec)
 
     def make_parser(self, parser, optname, metavar=None, short=None):
@@ -377,9 +360,9 @@ class OptManager:
 
         def mkf(l, s):
             l = l.replace("_", "-")
-            f = ["--%s" % l]
+            f = [f"--{l}"]
             if s:
-                f.append("-" + s)
+                f.append(f"-{s}")
             return f
 
         flags = mkf(optname, short)
@@ -387,11 +370,11 @@ class OptManager:
         if o.typespec == bool:
             g = parser.add_mutually_exclusive_group(required=False)
             onf = mkf(optname, None)
-            offf = mkf("no-" + optname, None)
+            offf = mkf(f"no-{optname}", None)
             # The short option for a bool goes to whatever is NOT the default
             if short:
                 if o.default:
-                    offf = mkf("no-" + optname, short)
+                    offf = mkf(f"no-{optname}", short)
                 else:
                     onf = mkf(optname, short)
             g.add_argument(
@@ -431,10 +414,11 @@ class OptManager:
                 action="append",
                 type=str,
                 dest=optname,
-                help=o.help + " May be passed multiple times.",
+                help=f"{o.help} May be passed multiple times.",
                 metavar=metavar,
                 choices=o.choices,
             )
+
         else:
             raise ValueError("Unsupported option type: %s", o.typespec)
 
@@ -451,10 +435,10 @@ def dump_defaults(opts, out: typing.TextIO):
         txt = o.help.strip()
 
         if o.choices:
-            txt += " Valid values are %s." % ", ".join(repr(c) for c in o.choices)
+            txt += f' Valid values are {", ".join((repr(c) for c in o.choices))}.'
         else:
             t = typecheck.typespec_to_str(o.typespec)
-            txt += " Type %s." % t
+            txt += f" Type {t}."
 
         txt = "\n".join(textwrap.wrap(txt))
         s.yaml_set_comment_before_after_key(k, before="\n" + txt)
@@ -468,7 +452,7 @@ def dump_dicts(opts, keys: typing.List[str]=None):
         Return: A list like: { "anticache": { type: "bool", default: false, value: true, help: "help text"} }
     """
     options_dict = {}
-    keys = keys if keys else opts.keys()
+    keys = keys or opts.keys()
     for k in sorted(keys):
         o = opts._options[k]
         t = typecheck.typespec_to_str(o.typespec)

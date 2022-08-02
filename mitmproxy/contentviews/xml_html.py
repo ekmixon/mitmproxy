@@ -33,10 +33,7 @@ class Token:
         self.data = data
 
     def __repr__(self):
-        return "{}({})".format(
-            type(self).__name__,
-            self.data
-        )
+        return f"{type(self).__name__}({self.data})"
 
 
 class Text(Token):
@@ -49,9 +46,7 @@ class Tag(Token):
     @property
     def tag(self):
         t = REGEX_TAG.search(self.data)
-        if t is not None:
-            return t.group(0).lower()
-        return "<empty>"
+        return t.group(0).lower() if t is not None else "<empty>"
 
     @property
     def is_comment(self) -> bool:
@@ -125,10 +120,15 @@ def indent_text(data: str, prefix: str) -> str:
 
 
 def is_inline_text(a: Optional[Token], b: Optional[Token], c: Optional[Token]) -> bool:
-    if isinstance(a, Tag) and isinstance(b, Text) and isinstance(c, Tag):
-        if a.is_opening and "\n" not in b.data and c.is_closing and a.tag == c.tag:
-            return True
-    return False
+    return bool(
+        isinstance(a, Tag)
+        and isinstance(b, Text)
+        and isinstance(c, Tag)
+        and a.is_opening
+        and "\n" not in b.data
+        and c.is_closing
+        and a.tag == c.tag
+    )
 
 
 def is_inline(prev2: Optional[Token], prev1: Optional[Token], t: Optional[Token], next1: Optional[Token], next2: Optional[Token]) -> bool:
@@ -170,8 +170,6 @@ class ElementStack:
                 if t == tag:
                     break
             self.indent = self.indent[:-remove_indent]
-        else:
-            pass  # this closing tag has no start tag. let's keep indentation as-is.
 
 
 def format_xml(tokens: Iterable[Token]) -> str:
@@ -228,10 +226,7 @@ class ViewXmlHtml(base.View):
         # Let's wait with this until we have a sequence-like interface,
         # this thing is reasonably fast right now anyway.
         pretty = base.format_text(format_xml(tokens))
-        if "html" in data.lower():
-            t = "HTML"
-        else:
-            t = "XML"
+        t = "HTML" if "html" in data.lower() else "XML"
         return t, pretty
 
     def render_priority(self, data: bytes, *, content_type: Optional[str] = None, **metadata) -> float:

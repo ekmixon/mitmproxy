@@ -78,9 +78,7 @@ class MasterSecretLogger:
 
 
 def make_master_secret_logger(filename: Optional[str]) -> Optional[MasterSecretLogger]:
-    if filename:
-        return MasterSecretLogger(Path(filename))
-    return None
+    return MasterSecretLogger(Path(filename)) if filename else None
 
 
 log_master_secret = make_master_secret_logger(
@@ -290,13 +288,14 @@ class ClientHello:
     def sni(self) -> Optional[str]:
         if self._client_hello.extensions:
             for extension in self._client_hello.extensions.extensions:
-                is_valid_sni_extension = (
-                        extension.type == 0x00 and
-                        len(extension.body.server_names) == 1 and
-                        extension.body.server_names[0].name_type == 0 and
-                        check.is_valid_host(extension.body.server_names[0].host_name)
-                )
-                if is_valid_sni_extension:
+                if is_valid_sni_extension := (
+                    extension.type == 0x00
+                    and len(extension.body.server_names) == 1
+                    and extension.body.server_names[0].name_type == 0
+                    and check.is_valid_host(
+                        extension.body.server_names[0].host_name
+                    )
+                ):
                     return extension.body.server_names[0].host_name.decode("ascii")
         return None
 
@@ -305,7 +304,7 @@ class ClientHello:
         if self._client_hello.extensions:
             for extension in self._client_hello.extensions.extensions:
                 if extension.type == 0x10:
-                    return list(x.name for x in extension.body.alpn_protocols)
+                    return [x.name for x in extension.body.alpn_protocols]
         return []
 
     @property

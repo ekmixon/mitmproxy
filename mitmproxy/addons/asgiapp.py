@@ -27,10 +27,12 @@ class ASGIApp:
 
     def should_serve(self, flow: http.HTTPFlow) -> bool:
         assert flow.reply
-        return bool(
+        return (
             (flow.request.pretty_host, flow.request.port) == (self.host, self.port)
-            and flow.reply.state == "start" and not flow.error and not flow.response
-            and not isinstance(flow.reply, DummyReply)  # ignore the HTTP flows of this app loaded from somewhere
+            and flow.reply.state == "start"
+            and not flow.error
+            and not flow.response
+            and not isinstance(flow.reply, DummyReply)
         )
 
     def request(self, flow: http.HTTPFlow) -> None:
@@ -130,7 +132,7 @@ async def serve(app, flow: http.HTTPFlow):
     try:
         await app(scope, receive, send)
         if not sent_response:
-            raise RuntimeError(f"no response sent.")
+            raise RuntimeError("no response sent.")
     except Exception:
         ctx.log.error(f"Error in asgi app:\n{traceback.format_exc(limit=-5)}")
         flow.response = http.Response.make(500, b"ASGI Error.")

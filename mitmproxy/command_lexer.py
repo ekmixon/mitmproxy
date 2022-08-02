@@ -29,13 +29,8 @@ def quote(val: str) -> str:
         return val
     if '"' not in val:
         return f'"{val}"'
-    if "'" not in val:
-        return f"'{val}'"
-    return '"' + val.replace('"', r"\x22") + '"'
+    return f"'{val}'" if "'" not in val else '"' + val.replace('"', r"\x22") + '"'
 
 
 def unquote(x: str) -> str:
-    if len(x) > 1 and x[0] in "'\"" and x[0] == x[-1]:
-        return x[1:-1]
-    else:
-        return x
+    return x[1:-1] if len(x) > 1 and x[0] in "'\"" and x[0] == x[-1] else x

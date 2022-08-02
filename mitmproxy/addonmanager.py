@@ -88,7 +88,7 @@ class Loader:
             if same_signature:
                 return
             else:
-                ctx.log.warn("Over-riding existing option %s" % name)
+                ctx.log.warn(f"Over-riding existing option {name}")
         self.master.options.add_option(
             name,
             typespec,
@@ -209,7 +209,7 @@ class AddonManager:
         for a in traverse([addon]):
             n = _get_name(a)
             if n not in self.lookup:
-                raise exceptions.AddonManagerError("No such addon: %s" % n)
+                raise exceptions.AddonManagerError(f"No such addon: {n}")
             self.chain = [i for i in self.chain if i is not a]
             del self.lookup[_get_name(a)]
         self.invoke_addon(addon, hooks.DoneHook())
@@ -230,9 +230,7 @@ class AddonManager:
         """
         message = event.args()[0]
         if not hasattr(message, "reply"):  # pragma: no cover
-            raise exceptions.ControlException(
-                "Message %s has no reply attribute" % message
-            )
+            raise exceptions.ControlException(f"Message {message} has no reply attribute")
 
         # We can use DummyReply objects multiple times. We only clear them up on
         # the next handler so that we can access value and state in the
@@ -258,17 +256,10 @@ class AddonManager:
         """
         assert isinstance(event, hooks.Hook)
         for a in traverse([addon]):
-            func = getattr(a, event.name, None)
-            if func:
+            if func := getattr(a, event.name, None):
                 if callable(func):
                     func(*event.args())
-                elif isinstance(func, types.ModuleType):
-                    # we gracefully exclude module imports with the same name as hooks.
-                    # For example, a user may have "from mitmproxy import log" in an addon,
-                    # which has the same name as the "log" hook. In this particular case,
-                    # we end up in an error loop because we "log" this error.
-                    pass
-                else:
+                elif not isinstance(func, types.ModuleType):
                     raise exceptions.AddonManagerError(
                         f"Addon handler {event.name} ({a}) not callable"
                     )

@@ -30,10 +30,13 @@ class CommandHistory:
         self.configure("command_history")  # pragma: no cover
 
     def configure(self, updated):
-        if "command_history" in updated or "confdir" in updated:
-            if ctx.options.command_history and self.history_file.is_file():
-                self.history = self.history_file.read_text().splitlines()
-                self.set_filter('')
+        if (
+            ("command_history" in updated or "confdir" in updated)
+            and ctx.options.command_history
+            and self.history_file.is_file()
+        ):
+            self.history = self.history_file.read_text().splitlines()
+            self.set_filter('')
 
     def done(self):
         if ctx.options.command_history and len(self.history) >= self.VACUUM_SIZE:

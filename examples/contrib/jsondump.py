@@ -155,7 +155,7 @@ class JSONDumper:
         if isinstance(obj, dict):
             return {cls.convert_to_strings(key): cls.convert_to_strings(value)
                     for key, value in obj.items()}
-        elif isinstance(obj, list) or isinstance(obj, tuple):
+        elif isinstance(obj, (list, tuple)):
             return [cls.convert_to_strings(element) for element in obj]
         elif isinstance(obj, bytes):
             return str(obj)[2:-1]
@@ -207,7 +207,7 @@ class JSONDumper:
         if ctx.options.dump_destination.startswith('http'):
             self.outfile = None
             self.url = ctx.options.dump_destination
-            ctx.log.info('Sending all data frames to %s' % self.url)
+            ctx.log.info(f'Sending all data frames to {self.url}')
             if ctx.options.dump_username and ctx.options.dump_password:
                 self.auth = (ctx.options.dump_username, ctx.options.dump_password)
                 ctx.log.info('HTTP Basic auth enabled.')
@@ -215,11 +215,11 @@ class JSONDumper:
             self.outfile = open(ctx.options.dump_destination, 'a')
             self.url = None
             self.lock = Lock()
-            ctx.log.info('Writing all data frames to %s' % ctx.options.dump_destination)
+            ctx.log.info(f'Writing all data frames to {ctx.options.dump_destination}')
 
         self._init_transformations()
 
-        for i in range(FILE_WORKERS if self.outfile else HTTP_WORKERS):
+        for _ in range(FILE_WORKERS if self.outfile else HTTP_WORKERS):
             t = Thread(target=self.worker)
             t.daemon = True
             t.start()

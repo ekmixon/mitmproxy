@@ -13,9 +13,10 @@ from mitmproxy.utils import debug, arg_check
 
 
 def assert_utf8_env():
-    spec = ""
-    for i in ["LANG", "LC_CTYPE", "LC_ALL"]:
-        spec += os.environ.get(i, "").lower()
+    spec = "".join(
+        os.environ.get(i, "").lower() for i in ["LANG", "LC_CTYPE", "LC_ALL"]
+    )
+
     if "utf" not in spec:
         print(
             "Error: mitmproxy requires a UTF console environment.",
@@ -41,10 +42,7 @@ def process_options(parser, opts, args):
         args.termlog_verbosity = 'debug'
         args.flow_detail = 2
 
-    adict = {}
-    for n in dir(args):
-        if n in opts:
-            adict[n] = getattr(args, n)
+    adict = {n: getattr(args, n) for n in dir(args) if n in opts}
     opts.merge(adict)
 
 
@@ -145,9 +143,7 @@ def mitmdump(args=None) -> typing.Optional[int]:  # pragma: no cover
         return {}
 
     m = run(dump.DumpMaster, cmdline.mitmdump, args, extra)
-    if m and m.errorcheck.has_errored:  # type: ignore
-        return 1
-    return None
+    return 1 if m and m.errorcheck.has_errored else None
 
 
 def mitmweb(args=None) -> typing.Optional[int]:  # pragma: no cover

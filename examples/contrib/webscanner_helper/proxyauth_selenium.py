@@ -25,7 +25,7 @@ cookie_key_name = {
 def randomString(string_length=10):
     """Generate a random string of fixed length """
     letters = string.ascii_lowercase
-    return ''.join(random.choice(letters) for i in range(string_length))
+    return ''.join(random.choice(letters) for _ in range(string_length))
 
 
 class AuthorizationOracle(abc.ABC):
@@ -75,7 +75,7 @@ class SeleniumAddon:
 
     def request(self, flow: mitmproxy.http.HTTPFlow):
         if flow.request.is_replay:
-            logger.warning("Caught replayed request: " + str(flow))
+            logger.warning(f"Caught replayed request: {str(flow)}")
         if (not self.filter or self.filter(flow)) and self.auth_oracle.is_unauthorized_request(flow):
             logger.debug("unauthorized request detected, perform login")
             self._login(flow)
@@ -84,27 +84,28 @@ class SeleniumAddon:
     # will also call response
     @concurrent
     def response(self, flow: mitmproxy.http.HTTPFlow):
-        if flow.response and (self.filter is None or self.filter(flow)):
-            if self.auth_oracle.is_unauthorized_response(flow):
-                self._login(flow)
-                new_flow = flow.copy()
-                if master and hasattr(master, 'commands'):
-                    # cast necessary for mypy
-                    cast(Any, master).commands.call("replay.client", [new_flow])
-                    count = 0
-                    while new_flow.response is None and count < 10:
-                        logger.error("waiting since " + str(count) + " ...")
-                        count = count + 1
-                        time.sleep(1)
-                    if new_flow.response:
-                        flow.response = new_flow.response
-                else:
-                    logger.warning("Could not call 'replay.client' command since master was not initialized yet.")
+        if not flow.response or self.filter is not None and not self.filter(flow):
+            return
+        if self.auth_oracle.is_unauthorized_response(flow):
+            self._login(flow)
+            new_flow = flow.copy()
+            if master and hasattr(master, 'commands'):
+                # cast necessary for mypy
+                cast(Any, master).commands.call("replay.client", [new_flow])
+                count = 0
+                while new_flow.response is None and count < 10:
+                    logger.error(f"waiting since {count} ...")
+                    count += 1
+                    time.sleep(1)
+                if new_flow.response:
+                    flow.response = new_flow.response
+            else:
+                logger.warning("Could not call 'replay.client' command since master was not initialized yet.")
 
-            if self.set_cookies and flow.response:
-                logger.debug("set set-cookie header for response")
-                self._set_set_cookie_headers(flow)
-                self.set_cookies = False
+        if self.set_cookies and flow.response:
+            logger.debug("set set-cookie header for response")
+            self._set_set_cookie_headers(flow)
+            self.set_cookies = False
 
     def done(self):
         self.browser.close()

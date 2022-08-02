@@ -120,7 +120,7 @@ class _StrType(_BaseType):
 
     @staticmethod
     def _unescape(match: re.Match) -> str:
-        return codecs.decode(match.group(0), "unicode-escape")  # type: ignore
+        return codecs.decode(match[0], "unicode-escape")
 
     def completion(self, manager: "CommandManager", t: type, s: str) -> typing.Sequence[str]:
         return []
@@ -196,7 +196,7 @@ class _PathType(_BaseType):
             files = glob.glob(os.path.join(path, "*"))
             prefix = start
         else:
-            files = glob.glob(path + "*")
+            files = glob.glob(f"{path}*")
             prefix = os.path.dirname(start)
         prefix = prefix or "./"
         for f in files:
@@ -225,7 +225,7 @@ class _CmdType(_BaseType):
 
     def parse(self, manager: "CommandManager", t: type, s: str) -> str:
         if s not in manager.commands:
-            raise exceptions.TypeError("Unknown command: %s" % s)
+            raise exceptions.TypeError(f"Unknown command: {s}")
         return s
 
     def is_valid(self, manager: "CommandManager", typ: typing.Any, val: typing.Any) -> bool:
@@ -257,7 +257,7 @@ class _StrSeqType(_BaseType):
         return [x.strip() for x in s.split(",")]
 
     def is_valid(self, manager: "CommandManager", typ: typing.Any, val: typing.Any) -> bool:
-        if isinstance(val, str) or isinstance(val, bytes):
+        if isinstance(val, (str, bytes)):
             return False
         try:
             for v in val:
@@ -318,8 +318,7 @@ class _CutSpecType(_BaseType):
         return opts
 
     def parse(self, manager: "CommandManager", t: type, s: str) -> CutSpec:
-        parts: typing.Any = s.split(",")
-        return parts
+        return s.split(",")
 
     def is_valid(self, manager: "CommandManager", typ: typing.Any, val: typing.Any) -> bool:
         if not isinstance(val, str):
@@ -369,13 +368,14 @@ class _FlowType(_BaseFlowType):
 
     def parse(self, manager: "CommandManager", t: type, s: str) -> flow.Flow:
         try:
-            flows = manager.execute("view.flows.resolve %s" % (s))
+            flows = manager.execute(f"view.flows.resolve {s}")
         except exceptions.CommandError as e:
             raise exceptions.TypeError(str(e)) from e
         if len(flows) != 1:
             raise exceptions.TypeError(
-                "Command requires one flow, specification matched %s." % len(flows)
+                f"Command requires one flow, specification matched {len(flows)}."
             )
+
         return flows[0]
 
     def is_valid(self, manager: "CommandManager", typ: typing.Any, val: typing.Any) -> bool:
@@ -388,7 +388,7 @@ class _FlowsType(_BaseFlowType):
 
     def parse(self, manager: "CommandManager", t: type, s: str) -> typing.Sequence[flow.Flow]:
         try:
-            return manager.execute("view.flows.resolve %s" % (s))
+            return manager.execute(f"view.flows.resolve {s}")
         except exceptions.CommandError as e:
             raise exceptions.TypeError(str(e)) from e
 
@@ -421,7 +421,7 @@ class _DataType(_BaseType):
         try:
             for row in val:
                 for cell in row:
-                    if not (isinstance(cell, str) or isinstance(cell, bytes)):
+                    if not isinstance(cell, (str, bytes)):
                         return False
         except TypeError:
             return False

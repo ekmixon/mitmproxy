@@ -75,13 +75,7 @@ def twebsocketflow(messages=True, err=None, close_code=None, close_reason='') ->
     if close_code is not None:
         flow.websocket.close_code = close_code
     else:
-        if err is True:
-            # ABNORMAL_CLOSURE
-            flow.websocket.close_code = 1006
-        else:
-            # NORMAL_CLOSURE
-            flow.websocket.close_code = 1000
-
+        flow.websocket.close_code = 1006 if err is True else 1000
     flow.reply = controller.DummyReply()
     return flow
 
@@ -199,8 +193,7 @@ def tserver_conn() -> connection.Server:
 
 
 def terr(content: str = "error") -> flow.Error:
-    err = flow.Error(content, 946681207)
-    return err
+    return flow.Error(content, 946681207)
 
 
 def twebsocket(messages: bool = True) -> websocket.WebSocketData:

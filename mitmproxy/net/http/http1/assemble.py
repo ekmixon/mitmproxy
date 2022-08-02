@@ -35,11 +35,10 @@ def assemble_body(headers, body_chunks, trailers):
             yield b"0\r\n%s\r\n" % trailers
         else:
             yield b"0\r\n\r\n"
+    elif trailers:
+        raise ValueError("Sending HTTP/1.1 trailer headers requires transfer-encoding: chunked")
     else:
-        if trailers:
-            raise ValueError("Sending HTTP/1.1 trailer headers requires transfer-encoding: chunked")
-        for chunk in body_chunks:
-            yield chunk
+        yield from body_chunks
 
 
 def _assemble_request_line(request_data):

@@ -34,10 +34,7 @@ class ViewSwapCase(contentviews.View):
         http_message: Optional[http.Message] = None,
         **unknown_metadata,
     ) -> float:
-        if content_type == "text/plain":
-            return 1
-        else:
-            return 0
+        return 1 if content_type == "text/plain" else 0
 
 
 view = ViewSwapCase()

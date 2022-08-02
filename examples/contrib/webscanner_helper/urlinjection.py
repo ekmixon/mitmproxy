@@ -71,7 +71,7 @@ class HTMLInjection(InjectionGenerator):
                            .content
                            .decode(self.ENCODING, "backslashreplace"))
                 if "</body>" in content:
-                    content = content.replace("</body>", self.index_html(index) + "</body>")
+                    content = content.replace("</body>", f"{self.index_html(index)}</body>")
                 else:
                     content += self.index_html(index)
                 flow.response.content = content.encode(self.ENCODING)
@@ -90,8 +90,7 @@ class RobotsInjection(InjectionGenerator):
     def robots_txt(cls, index, directive="Allow"):
         lines = ["User-agent: *"]
         for scheme_netloc, paths in index.items():
-            for path, methods in paths.items():
-                lines.append(directive + ": " + path)
+            lines.extend(f"{directive}: {path}" for path, methods in paths.items())
         return "\n".join(lines)
 
     def inject(self, index, flow: HTTPFlow):
@@ -164,10 +163,9 @@ class UrlInjectionAddon:
         """Checks if the response matches the filter and such should be injected.
         Injects the URL index if appropriate.
         """
-        if flow.response is not None:
-            if self.flt is not None and self.flt(flow):
-                self.injection_gen.inject(self.url_store, flow)
-                flow.response.status_code = 200
-                flow.response.headers["content-type"] = "text/html"
-                logger.debug(f"Set status code to 200 and set content to logged "
-                             f"urls. Method: {self.injection_gen}")
+        if flow.response is not None and self.flt is not None and self.flt(flow):
+            self.injection_gen.inject(self.url_store, flow)
+            flow.response.status_code = 200
+            flow.response.headers["content-type"] = "text/html"
+            logger.debug(f"Set status code to 200 and set content to logged "
+                         f"urls. Method: {self.injection_gen}")

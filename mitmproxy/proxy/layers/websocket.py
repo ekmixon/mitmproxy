@@ -96,8 +96,9 @@ class WebsocketLayer(layer.Layer):
 
         # Parse extension headers. We only support deflate at the moment and ignore everything else.
         assert self.flow.response  # satisfy type checker
-        ext_header = self.flow.response.headers.get("Sec-WebSocket-Extensions", "")
-        if ext_header:
+        if ext_header := self.flow.response.headers.get(
+            "Sec-WebSocket-Extensions", ""
+        ):
             for ext in wsproto.utilities.split_comma_header(ext_header.encode("ascii", "replace")):
                 ext_name = ext.split(";", 1)[0].strip()
                 if ext_name == wsproto.extensions.PerMessageDeflate.name:
@@ -226,24 +227,22 @@ class Fragmentizer:
         self.is_text = is_text
 
     def msg(self, data: bytes, message_finished: bool):
-        if self.is_text:
-            data_str = data.decode(errors="replace")
-            return wsproto.events.TextMessage(data_str, message_finished=message_finished)
-        else:
+        if not self.is_text:
             return wsproto.events.BytesMessage(data, message_finished=message_finished)
+        data_str = data.decode(errors="replace")
+        return wsproto.events.TextMessage(data_str, message_finished=message_finished)
 
     def __call__(self, content: bytes) -> Iterator[wsproto.events.Message]:
+        # message has the same length, we can reuse the same sizes
+        offset = 0
         if len(content) == sum(self.fragment_lengths):
-            # message has the same length, we can reuse the same sizes
-            offset = 0
             for fl in self.fragment_lengths[:-1]:
                 yield self.msg(content[offset:offset + fl], False)
                 offset += fl
-            yield self.msg(content[offset:], True)
         else:
-            offset = 0
             total = len(content) - self.FRAGMENT_SIZE
             while offset < total:
                 yield self.msg(content[offset:offset + self.FRAGMENT_SIZE], False)
                 offset += self.FRAGMENT_SIZE
-            yield self.msg(content[offset:], True)
+
+        yield self.msg(content[offset:], True)

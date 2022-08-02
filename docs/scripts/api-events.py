@@ -155,6 +155,5 @@ with outfile.open("w") as f, contextlib.redirect_stdout(f):
         ]
     )
 
-not_documented = set(hooks.all_hooks.keys()) - known
-if not_documented:
+if not_documented := set(hooks.all_hooks.keys()) - known:
     raise RuntimeError(f"Not documented: {not_documented}")

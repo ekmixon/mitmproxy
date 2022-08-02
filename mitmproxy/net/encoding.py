@@ -68,18 +68,15 @@ def decode(
             decoded = custom_decode[encoding](encoded)
         except KeyError:
             decoded = codecs.decode(encoded, encoding, errors)  # type: ignore
-        if encoding in ("gzip", "deflate", "deflateraw", "br", "zstd"):
+        if encoding in {"gzip", "deflate", "deflateraw", "br", "zstd"}:
             _cache = CachedDecode(encoded, encoding, errors, decoded)
         return decoded
     except TypeError:
         raise
     except Exception as e:
-        raise ValueError("{} when decoding {} with {}: {}".format(
-            type(e).__name__,
-            repr(encoded)[:10],
-            repr(encoding),
-            repr(e),
-        ))
+        raise ValueError(
+            f"{type(e).__name__} when decoding {repr(encoded)[:10]} with {repr(encoding)}: {repr(e)}"
+        )
 
 
 @overload
@@ -131,12 +128,9 @@ def encode(decoded: Union[None, str, bytes], encoding, errors='strict') -> Union
     except TypeError:
         raise
     except Exception as e:
-        raise ValueError("{} when encoding {} with {}: {}".format(
-            type(e).__name__,
-            repr(decoded)[:10],
-            repr(encoding),
-            repr(e),
-        ))
+        raise ValueError(
+            f"{type(e).__name__} when encoding {repr(decoded)[:10]} with {repr(encoding)}: {repr(e)}"
+        )
 
 
 def identity(content):
@@ -163,9 +157,7 @@ def encode_gzip(content: bytes) -> bytes:
 
 
 def decode_brotli(content: bytes) -> bytes:
-    if not content:
-        return b""
-    return brotli.decompress(content)
+    return brotli.decompress(content) if content else b""
 
 
 def encode_brotli(content: bytes) -> bytes:

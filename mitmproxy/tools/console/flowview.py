@@ -66,8 +66,7 @@ class FlowDetails(tabs.Tabs):
         self.show()
 
     def focus_changed(self):
-        f = self.flow
-        if f:
+        if f := self.flow:
             if isinstance(f, http.HTTPFlow):
                 if f.websocket:
                     self.tabs = [
@@ -138,13 +137,13 @@ class FlowDetails(tabs.Tabs):
                     " ",
                     ('heading', "["),
                     ('heading_key', "m"),
-                    ('heading', (":%s]" % viewmode)),
+                    ('heading', f":{viewmode}]"),
                 ],
-                align="right"
-            )
+                align="right",
+            ),
         ]
-        contentview_status_bar = urwid.AttrWrap(urwid.Columns(cols), "heading")
-        return contentview_status_bar
+
+        return urwid.AttrWrap(urwid.Columns(cols), "heading")
 
     FROM_CLIENT_MARKER = ("from_client", f"{common.SYMBOL_FROM_CLIENT} ")
     TO_CLIENT_MARKER = ("to_client", f"{common.SYMBOL_TO_CLIENT} ")
@@ -316,7 +315,7 @@ class FlowDetails(tabs.Tabs):
                 # 1) https://github.com/mitmproxy/mitmproxy/issues/1833
                 #    https://github.com/urwid/urwid/blob/6608ee2c9932d264abd1171468d833b7a4082e13/urwid/display_common.py#L35-L36,
 
-                k = strutils.bytes_to_escaped_str(k) + ":"
+                k = f"{strutils.bytes_to_escaped_str(k)}:"
                 v = strutils.bytes_to_escaped_str(v)
                 hdrs.append((k, v))
             txt = common.format_keyvals(
@@ -337,11 +336,12 @@ class FlowDetails(tabs.Tabs):
                         " ",
                         ('heading', "["),
                         ('heading_key', "m"),
-                        ('heading', (":%s]" % viewmode)),
+                        ('heading', f":{viewmode}]"),
                     ],
-                    align="right"
-                )
+                    align="right",
+                ),
             ]
+
             title = urwid.AttrWrap(urwid.Columns(cols), "heading")
 
             txt.append(title)

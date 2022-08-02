@@ -61,7 +61,7 @@ class CliDirector:
             pause = self.pause_between_keys
         if target is None:
             target = self.tmux_pane
-        for i in range(count):
+        for _ in range(count):
             if keys == " ":
                 keys = "Space"
             target.send_keys(cmd=keys, enter=False, suppress_history=False)
@@ -110,7 +110,7 @@ class CliDirector:
         if duration is None:
             duration = len(msg) * 0.08  # seconds
         self.tmux_session.set_option("display-time", int(duration * 1000))  # milliseconds
-        self.tmux_pane.display_message(" " + msg)
+        self.tmux_pane.display_message(f" {msg}")
 
         if add_instruction or instruction_html:
             if not instruction_html:
@@ -137,16 +137,16 @@ class CliDirector:
         if time_from is None:
             time_from = self.current_time
 
-        self.instructions.append(InstructionSpec(
-            instruction = str(len(self.instructions) + 1) + ". " + instruction,
-            time_from = round(time_from, 1),
-            time_to = round(time_from + duration, 1)
-        ))
+        self.instructions.append(
+            InstructionSpec(
+                instruction=f"{str(len(self.instructions) + 1)}. {instruction}",
+                time_from=round(time_from, 1),
+                time_to=round(time_from + duration, 1),
+            )
+        )
 
     def save_instructions(self, output_path: str) -> None:
-        instr_as_dicts = []
-        for instr in self.instructions:
-            instr_as_dicts.append(instr._asdict())
+        instr_as_dicts = [instr._asdict() for instr in self.instructions]
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(instr_as_dicts, f, ensure_ascii=False, indent=4)
 
